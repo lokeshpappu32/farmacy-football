@@ -47,6 +47,12 @@ def login():
     if (admin_value and admin_value == current_app.config["ADMIN_SECRET_CODE"]) or value == current_app.config["ADMIN_SECRET_CODE"]:
         token = create_access_token(identity="admin", additional_claims={"role": "admin"})
         return {"token": token, "role": "admin", "admin": {"name": "Farmacy Football Admin"}}
+    if admin_value:
+        mr_id = admin_value.upper()
+        if Participant.query.filter_by(mr_id=mr_id).first():
+            token = create_access_token(identity=mr_id, additional_claims={"role": "mr", "mr_id": mr_id})
+            return {"token": token, "role": "mr", "mr": {"mr_id": mr_id}}
+        return {"message": "Admin code or MR ID was not found."}, 404
     if not value:
         return {"message": "Mobile number is required."}, 400
     if payload.get("country_code"):

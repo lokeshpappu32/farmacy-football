@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from threading import Thread
 
 import requests
 from flask import current_app
@@ -107,6 +108,56 @@ def award_prediction_points(match_id=None):
     return awarded
 
 
+def queue_prediction_awards(match_id):
+    app = current_app._get_current_object()
+
+    def runner():
+        with app.app_context():
+            try:
+                awarded = award_prediction_points(match_id)
+                app.logger.info("Background award job completed for match %s. Awarded users: %s", match_id, awarded)
+            except Exception:
+                db.session.rollback()
+                app.logger.exception("Background award job failed for match %s", match_id)
+            finally:
+                db.session.remove()
+
+    Thread(target=runner, daemon=True, name=f"award-predictions-match-{match_id}").start()
+
+
+def finalize_draw(match):
+    match.winner_team = "Draw"
+    match.status = "completed"
+    marked = 0
+    for prediction in Prediction.query.filter_by(match_id=match.id, is_correct=None).all():
+        prediction.is_correct = False
+        marked += 1
+    db.session.add(AdminLog(admin_action="manual_draw_update", details=f"Match {match.id} marked as draw. {marked} predictions closed."))
+    db.session.commit()
+    return marked
+
+
+def cancel_match(match):
+    match.winner_team = None
+    match.status = "cancelled"
+    marked = 0
+    for prediction in Prediction.query.filter_by(match_id=match.id, is_correct=None).all():
+        prediction.is_correct = False
+        marked += 1
+    db.session.add(AdminLog(admin_action="cancel_match", details=f"Match {match.id} cancelled. {marked} predictions closed."))
+    db.session.commit()
+    return marked
+
+
+def reschedule_match(match, match_datetime):
+    match.match_datetime = match_datetime
+    match.status = "scheduled"
+    match.winner_team = None
+    db.session.add(AdminLog(admin_action="reschedule_match", details=f"Match {match.id} rescheduled to {match_datetime.isoformat()}"))
+    db.session.commit()
+    return match
+
+
 def manual_update_winner(match, winner_team):
     if winner_team not in {match.team1, match.team2}:
         raise ValueError("Winner must match one of the participating teams.")
@@ -114,4 +165,3 @@ def manual_update_winner(match, winner_team):
     match.status = "completed"
     db.session.add(AdminLog(admin_action="manual_winner_update", details=f"Match {match.id} winner set to {winner_team}"))
     db.session.commit()
-    return award_prediction_points(match.id)

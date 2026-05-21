@@ -17,11 +17,14 @@ const adminLinks = [
   ["Analytics", "/admin/analytics"],
 ];
 
-export default function AppShell({ admin = false }) {
+const mrLinks = [["MR Dashboard", "/mr"]];
+
+export default function AppShell({ mode = "user" }) {
   const [open, setOpen] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const links = admin ? adminLinks : userLinks;
+  const links = mode === "admin" ? adminLinks : mode === "mr" ? mrLinks : userLinks;
+  const home = mode === "admin" ? "/admin" : mode === "mr" ? "/mr" : "/dashboard";
 
   const doLogout = () => {
     logout();
@@ -32,7 +35,7 @@ export default function AppShell({ admin = false }) {
     <div className="min-h-screen bg-stadium field-lines">
       <nav className="sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <NavLink to={admin ? "/admin" : "/dashboard"} className="text-lg font-black text-gold">
+          <NavLink to={home} className="text-lg font-black text-gold">
             Farmacy Football
           </NavLink>
           <button className="btn-ghost md:hidden" onClick={() => setOpen(!open)} aria-label="Toggle navigation">

@@ -36,6 +36,16 @@ class Match(db.Model):
             "match_datetime": self.match_datetime.isoformat() if self.match_datetime else None,
             "winner_team": self.winner_team,
             "status": self.status,
+            "result_label": self.result_label(),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+    def result_label(self):
+        if self.status == "cancelled":
+            return "Cancelled"
+        if self.winner_team == "Draw":
+            return "Draw"
+        if self.winner_team:
+            return f"{self.winner_team} won"
+        return self.status.title()

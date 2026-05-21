@@ -38,7 +38,7 @@ export default function Performance() {
               <div key={prediction.id} className="rounded-2xl bg-white/10 p-4">
                 <div className="font-bold">{prediction.match.team1} vs {prediction.match.team2}</div>
                 <div className="text-sm text-white/60">Picked {prediction.predicted_team} - {prediction.favorite_drug}</div>
-                <div className="mt-2 text-sm text-gold">{prediction.is_correct === null ? "Awaiting result" : prediction.is_correct ? "Correct +50" : "Wrong prediction"}</div>
+                <div className="mt-2 text-sm text-gold">{predictionResultLabel(prediction)}</div>
               </div>
             ))}
           </div>
@@ -60,4 +60,12 @@ export default function Performance() {
       </div>
     </div>
   );
+}
+
+function predictionResultLabel(prediction) {
+  if (prediction.is_correct === null) return "Awaiting result";
+  if (prediction.is_correct) return "Correct +50";
+  if (prediction.match?.status === "cancelled") return "Match cancelled - no winner bonus";
+  if (prediction.match?.winner_team === "Draw") return "Draw - no winner bonus";
+  return "Wrong prediction";
 }
