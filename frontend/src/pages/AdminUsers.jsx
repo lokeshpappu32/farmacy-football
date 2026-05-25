@@ -20,19 +20,19 @@ export default function AdminUsers() {
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <h1 className="text-3xl font-black">User Management</h1>
         <div className="flex gap-2">
-          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search user, country, MR" />
+          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search user, country, city, MR" />
           <button className="btn-ghost" onClick={refresh}>Search</button>
           <button className="btn-primary" onClick={exportCsv}>Export CSV</button>
         </div>
       </div>
       <div className="glass overflow-x-auto rounded-3xl p-4">
         {loading ? <LoadingSkeleton rows={7} /> : error ? <div>{error}</div> : (
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="text-white/55"><tr><th className="p-3">Name</th><th>Mobile</th><th>Email</th><th>Country</th><th>MR</th><th>Points</th></tr></thead>
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead className="text-white/55"><tr><th className="p-3">Name</th><th>Mobile</th><th>Email</th><th>Country</th><th>City</th><th>MR</th><th>Points</th></tr></thead>
             <tbody>
               {data.users.map((user) => (
                 <tr key={user.id} className="border-t border-white/10">
-                  <td className="p-3 font-bold">{user.full_name}</td><td>{user.mobile_number}</td><td>{user.email}</td><td>{user.country}</td><td>{user.mr_id}</td><td className="font-black text-gold">{user.total_points}</td>
+                  <td className="p-3 font-bold">{user.full_name}</td><td>{user.mobile_number}</td><td>{user.email}</td><td>{user.country}</td><td>{user.city || "-"}</td><td>{user.mr_id}</td><td className="font-black text-gold">{user.total_points}</td>
                 </tr>
               ))}
             </tbody>

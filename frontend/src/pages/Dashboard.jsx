@@ -169,9 +169,9 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
           </div>
           <div className="p-5 md:p-6">
             <div className="flex items-center justify-around gap-4">
-              <TeamLogo src={match.team1_logo} name={match.team1} />
+              <TeamLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
               <div className="text-3xl font-black text-ember">VS</div>
-              <TeamLogo src={match.team2_logo} name={match.team2} />
+              <TeamLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
             </div>
             <div className="mt-6">
               {(match.venue_name || match.venue_location) && (

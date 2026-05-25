@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
+from app.utils.serialization import utc_iso
 
 
 class PointsHistory(db.Model):
@@ -22,5 +23,5 @@ class PointsHistory(db.Model):
             "match_id": self.match_id,
             "points": self.points,
             "reason": self.reason,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

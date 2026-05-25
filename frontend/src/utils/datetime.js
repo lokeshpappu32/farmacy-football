@@ -1,11 +1,21 @@
 export function formatDateTime(value) {
   if (!value) return "TBA";
-  const date = new Date(value);
+  const normalizedValue = normalizeUtcValue(value);
+  const date = new Date(normalizedValue);
   if (Number.isNaN(date.getTime())) return "TBA";
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function normalizeUtcValue(value) {
+  if (value instanceof Date) return value;
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  const hasTime = trimmed.includes("T");
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+  return hasTime && !hasTimezone ? `${trimmed}Z` : trimmed;
 }
 
 export function timeLeft(target) {

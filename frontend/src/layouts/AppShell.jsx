@@ -4,6 +4,7 @@ import { FiMenu, FiX } from "react-icons/fi";
 
 const userLinks = [
   ["Game Dashboard", "/dashboard"],
+  ["Schedule", "/schedule"],
   ["Performance", "/performance"],
   ["Leaderboard", "/leaderboard"],
   ["Rules", "/rules"],
@@ -13,7 +14,8 @@ const adminLinks = [
   ["Dashboard", "/admin"],
   ["Matches", "/admin/matches"],
   ["Users", "/admin/users"],
-  ["Analytics", "/admin/analytics"],
+  ["Country/City", "/admin/analytics"],
+  ["Drug Analytics", "/admin/drug-analytics"],
 ];
 
 const mrLinks = [["MR Dashboard", "/mr"]];

@@ -1,12 +1,13 @@
 import re
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, request
+from flask import Blueprint, make_response, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.extensions import db
 from app.models import AdminLog, Match, Prediction
 from app.services.footballdata_io_service import maybe_sync_football_data
+from app.utils.serialization import utc_iso
 from app.utils.time import as_utc
 
 matches_bp = Blueprint("matches", __name__)
@@ -121,7 +122,7 @@ def recent_match_announcements(limit=2):
             text = f"Match rescheduled: {match.team1} vs {match.team2} on {as_utc(match.match_datetime).isoformat()}."
         else:
             continue
-        messages.append({"id": log.id, "type": log.admin_action, "message": text, "created_at": log.created_at.isoformat()})
+        messages.append({"id": log.id, "type": log.admin_action, "message": text, "created_at": utc_iso(log.created_at)})
         if len(messages) >= limit:
             break
     return messages
@@ -136,7 +137,58 @@ def db_get_match(match_id):
     return db.session.get(Match, match_id) if match_id else None
 
 
+@matches_bp.get("/schedule")
+@jwt_required(optional=True)
+def match_schedule():
+    maybe_sync_football_data("schedule", role="participant" if get_jwt_identity() else "public", sync_types=["upcoming", "live", "results"])
+    now = datetime.now(timezone.utc)
+    tz_offset_minutes = request.args.get("tz_offset_minutes", type=int)
+    today = client_today(tz_offset_minutes)
+    per_page = min(max(request.args.get("per_page", 8, type=int), 1), 24)
+    upcoming_page = max(request.args.get("upcoming_page", 1, type=int), 1)
+    completed_page = max(request.args.get("completed_page", 1, type=int), 1)
+
+    upcoming_all = [
+        match
+        for match in Match.query.filter(Match.status.in_(["scheduled", "live"])).order_by(Match.match_datetime.asc()).all()
+        if as_utc(match.match_datetime) > now and local_match_date(match, tz_offset_minutes) >= today
+    ]
+    completed_query = Match.query.filter(
+        Match.status.in_(["completed", "cancelled"]),
+    ).order_by(Match.match_datetime.desc())
+
+    upcoming_total = len(upcoming_all)
+    completed_total = completed_query.count()
+    upcoming = upcoming_all[(upcoming_page - 1) * per_page : upcoming_page * per_page]
+    completed = completed_query.offset((completed_page - 1) * per_page).limit(per_page).all()
+
+    response = make_response({
+        "upcoming": [match.to_dict() for match in upcoming],
+        "completed": [match.to_dict() for match in completed],
+        "pagination": {
+            "upcoming": pagination_meta(upcoming_total, upcoming_page, per_page),
+            "completed": pagination_meta(completed_total, completed_page, per_page),
+        },
+    })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @matches_bp.get("")
 def list_matches():
     matches = Match.query.order_by(Match.match_datetime.asc()).all()
     return {"matches": [match.to_dict() for match in matches]}
+
+
+def pagination_meta(total, page, per_page):
+    pages = max((total + per_page - 1) // per_page, 1)
+    return {
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "pages": pages,
+        "has_prev": page > 1,
+        "has_next": page < pages,
+    }

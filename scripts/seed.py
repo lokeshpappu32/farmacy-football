@@ -15,12 +15,12 @@ from scripts.country_seed import COUNTRIES
 app = create_app()
 
 DEMO_PARTICIPANTS = [
-    ("Aarav Patel", "+91", "+919876543210", "aarav@example.com", "India", "MR123"),
-    ("Neha Sharma", "+91", "+919876543211", "neha@example.com", "India", "MR123"),
-    ("Ravi Kumar", "+91", "+919876543212", "ravi@example.com", "India", "MR123"),
-    ("Priya Nair", "+91", "+919876543213", "priya@example.com", "India", "MR123"),
-    ("Maria Santos", "+55", "+5511987654321", "maria@example.com", "Brazil", "MR220"),
-    ("Ahmed Khan", "+971", "+971501234567", "ahmed@example.com", "United Arab Emirates", "MR410"),
+    ("Aarav Patel", "+91", "+919876543210", "aarav@example.com", "India", "Mumbai", "MR123"),
+    ("Neha Sharma", "+91", "+919876543211", "neha@example.com", "India", "Delhi", "MR123"),
+    ("Ravi Kumar", "+91", "+919876543212", "ravi@example.com", "India", "Mumbai", "MR123"),
+    ("Priya Nair", "+91", "+919876543213", "priya@example.com", "India", "Bengaluru", "MR123"),
+    ("Maria Santos", "+55", "+5511987654321", "maria@example.com", "Brazil", "Sao Paulo", "MR220"),
+    ("Ahmed Khan", "+971", "+971501234567", "ahmed@example.com", "United Arab Emirates", "Dubai", "MR410"),
 ]
 
 DEMO_MATCHES = [
@@ -72,6 +72,10 @@ def ensure_schema_columns():
         with db.engine.begin() as connection:
             suffix = " AFTER full_name" if db.engine.dialect.name == "mysql" else ""
             connection.execute(text(f"ALTER TABLE participants ADD COLUMN country_code VARCHAR(8) NULL{suffix}"))
+    if "city" not in participant_columns:
+        with db.engine.begin() as connection:
+            suffix = " AFTER country" if db.engine.dialect.name == "mysql" else ""
+            connection.execute(text(f"ALTER TABLE participants ADD COLUMN city VARCHAR(120) NULL{suffix}"))
 
     country_columns = {column["name"] for column in inspector.get_columns("countries")}
     if "flag_url" not in country_columns:
@@ -117,7 +121,7 @@ def seed_countries():
 
 
 def seed_participants():
-    for full_name, country_code, mobile, email, country, mr_id in DEMO_PARTICIPANTS:
+    for full_name, country_code, mobile, email, country, city, mr_id in DEMO_PARTICIPANTS:
         participant = Participant.query.filter_by(mobile_number=mobile).first()
         if not participant:
             participant = Participant(
@@ -126,6 +130,7 @@ def seed_participants():
                 mobile_number=mobile,
                 email=email,
                 country=country,
+                city=city,
                 mr_id=mr_id,
                 total_points=0,
             )
@@ -137,6 +142,7 @@ def seed_participants():
             participant.country_code = country_code
             participant.email = email
             participant.country = country
+            participant.city = city
             participant.mr_id = mr_id
 
 

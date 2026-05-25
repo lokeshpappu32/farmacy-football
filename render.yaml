@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r requirements.txt && cd frontend && npm install && npm run build
-    startCommand: python scripts/seed.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    startCommand: python scripts/init_db.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -12,22 +12,18 @@ services:
         fromDatabase:
           name: farmacy-football-db
           property: connectionString
+      - key: ADMIN_SECRET_CODE
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: JWT_SECRET_KEY
         generateValue: true
-      - key: ADMIN_SECRET_CODE
-        sync: false
       - key: PUBLIC_APP_URL
         sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: RATELIMIT_STORAGE_URI
         value: memory://
-      - key: FOOTBALL_DATA_API_TOKEN
-        sync: false
-      - key: FOOTBALL_DATA_COMPETITION
-        value: WC
       - key: FOOTBALLDATA_IO_API_KEY
         sync: false
       - key: FOOTBALLDATA_IO_BASE_URL

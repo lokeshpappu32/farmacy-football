@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
+from app.utils.serialization import utc_iso
 
 
 class Prediction(db.Model):
@@ -36,7 +37,7 @@ class Prediction(db.Model):
             "is_correct": self.is_correct,
             "participation_points": self.participation_points,
             "winner_points": self.winner_points,
-            "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "submitted_at": utc_iso(self.submitted_at),
+            "updated_at": utc_iso(self.updated_at),
             "match": self.match.to_dict() if self.match else None,
         }

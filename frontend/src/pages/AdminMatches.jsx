@@ -107,7 +107,11 @@ export default function AdminMatches() {
             {(data?.matches || []).map((match) => (
               <div key={match.id} className="grid gap-3 rounded-2xl bg-white/10 p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                  <div className="text-lg font-black">{match.team1} vs {match.team2}</div>
+                  <div className="flex items-center gap-3">
+                    <CompactLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
+                    <div className="text-lg font-black">{match.team1} vs {match.team2}</div>
+                    <CompactLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
+                  </div>
                   <div className="mt-1 grid gap-1 text-sm text-white/60">
                     <span>UTC: {formatUtcDateTime(match.match_datetime)}</span>
                     <span>Local: {formatDateTime(match.match_datetime)} - {match.result_label || match.status}</span>
@@ -157,6 +161,25 @@ export default function AdminMatches() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CompactLogo({ src, fallbackSrc, name }) {
+  const [currentSrc, setCurrentSrc] = useState(src || fallbackSrc);
+  useEffect(() => setCurrentSrc(src || fallbackSrc), [src, fallbackSrc]);
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white p-1">
+      {currentSrc ? (
+        <img
+          src={currentSrc}
+          alt={name}
+          className="max-h-full max-w-full"
+          onError={() => setCurrentSrc(currentSrc !== fallbackSrc ? fallbackSrc : null)}
+        />
+      ) : (
+        <span className="text-xs font-black text-pitch">{name?.slice(0, 2)}</span>
+      )}
     </div>
   );
 }

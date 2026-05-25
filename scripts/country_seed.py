@@ -23,3 +23,26 @@ COUNTRIES = [
     ("United Kingdom", "GB", "+44"), ("United States", "US", "+1"), ("Vietnam", "VN", "+84"),
     ("Zambia", "ZM", "+260"), ("Zimbabwe", "ZW", "+263"),
 ]
+
+EXTRA_FOOTBALL_COUNTRIES = [
+    ("Bosnia and Herzegovina", "BA", "+387"),
+    ("Cape Verde", "CV", "+238"),
+    ("Congo DR", "CD", "+243"),
+    ("Curacao", "CW", "+599"),
+    ("Czech Republic", "CZ", "+420"),
+    ("Ecuador", "EC", "+593"),
+    ("Haiti", "HT", "+509"),
+    ("Iran", "IR", "+98"),
+    ("Ivory Coast", "CI", "+225"),
+    ("New Zealand", "NZ", "+64"),
+    ("Norway", "NO", "+47"),
+    ("Panama", "PA", "+507"),
+    ("Paraguay", "PY", "+595"),
+    ("Senegal", "SN", "+221"),
+    ("Sweden", "SE", "+46"),
+    ("Tunisia", "TN", "+216"),
+    ("Uruguay", "UY", "+598"),
+    ("Uzbekistan", "UZ", "+998"),
+]
+
+COUNTRIES = COUNTRIES + EXTRA_FOOTBALL_COUNTRIES

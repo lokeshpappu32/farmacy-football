@@ -1,124 +1,92 @@
-import { useCallback, useState } from "react";
+import { FaBullseye, FaCity, FaMapMarkedAlt, FaUsers } from "react-icons/fa";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StatCard from "../components/StatCard";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
-import { formatDateTime } from "../utils/datetime";
 
 export default function AdminAnalytics() {
   const { data, loading, error } = useApi(async () => (await api.get("/admin/analytics")).data, []);
-  const [filters, setFilters] = useState({ country: "", mr_id: "", sort: "most" });
-  const drugRequest = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (filters.country) params.set("country", filters.country);
-    if (filters.mr_id) params.set("mr_id", filters.mr_id);
-    params.set("sort", filters.sort);
-    return (await api.get(`/admin/drug-analytics?${params.toString()}`)).data;
-  }, [filters.country, filters.mr_id, filters.sort]);
-  const { data: drugData, loading: drugLoading, error: drugError } = useApi(drugRequest, [drugRequest]);
 
   if (loading) return <LoadingSkeleton rows={5} />;
   if (error) return <div className="glass rounded-2xl p-6">{error}</div>;
-  const max = Math.max(...data.country_analytics.map((item) => item.participants), 1);
-  const maxDrug = Math.max(...(drugData?.drugs || []).map((item) => item.selection_count), 1);
+
+  const countryRows = data.country_analytics || [];
+  const cityRows = data.city_analytics || [];
+  const topCountry = data.insights?.top_country;
+  const topCity = data.insights?.top_city;
+  const topActiveCity = [...cityRows].sort((a, b) => (b.participation_rate || 0) - (a.participation_rate || 0))[0];
+  const topAccuracyCountry = [...countryRows].sort((a, b) => (b.accuracy || 0) - (a.accuracy || 0))[0];
+  const maxCountryUsers = Math.max(...countryRows.map((item) => item.participants), 1);
+  const maxCityUsers = Math.max(...cityRows.map((item) => item.participants), 1);
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-black">Analytics</h1>
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Participants" value={data.total_participants} />
-        <StatCard label="Predictions" value={data.total_predictions} />
-        <StatCard label="Matches" value={data.total_matches} />
-        <StatCard label="Completed" value={data.completed_matches} />
+      <div>
+        <h1 className="text-3xl font-black">Country & City Analytics</h1>
+        <p className="mt-2 text-white/60">Geography-wise enrollment, participation, points, and prediction accuracy.</p>
       </div>
-      <section className="glass rounded-3xl p-6">
-        <h2 className="mb-5 text-xl font-black">Country Distribution</h2>
-        <div className="space-y-4">
-          {data.country_analytics.map((item) => (
-            <div key={item.country}>
-              <div className="mb-1 flex justify-between text-sm"><span>{item.country}</span><span className="text-gold">{item.participants}</span></div>
-              <div className="h-3 rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-gold to-ember" style={{ width: `${(item.participants / max) * 100}%` }} /></div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="glass rounded-3xl p-6">
-        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-          <div>
-            <h2 className="text-xl font-black">Favorite Drug Analytics</h2>
-            <p className="text-sm text-white/55">Filter participant answers by country and MR ID, then sort most or least selected drugs.</p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <select className="input" value={filters.country} onChange={(event) => setFilters((current) => ({ ...current, country: event.target.value }))}>
-              <option className="bg-black" value="">All countries</option>
-              {(drugData?.countries || []).map((country) => <option className="bg-black" key={country} value={country}>{country}</option>)}
-            </select>
-            <select className="input" value={filters.mr_id} onChange={(event) => setFilters((current) => ({ ...current, mr_id: event.target.value }))}>
-              <option className="bg-black" value="">All MRs</option>
-              {(drugData?.mr_ids || []).map((mr) => <option className="bg-black" key={mr} value={mr}>{mr}</option>)}
-            </select>
-            <select className="input" value={filters.sort} onChange={(event) => setFilters((current) => ({ ...current, sort: event.target.value }))}>
-              <option className="bg-black" value="most">Most selected</option>
-              <option className="bg-black" value="least">Least selected</option>
-            </select>
-          </div>
-        </div>
 
-        {drugLoading ? <LoadingSkeleton rows={4} /> : drugError ? <div>{drugError}</div> : (
-          <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
-            <div className="space-y-3">
-              {(drugData?.drugs || []).map((row, index) => (
-                <div key={row.favorite_drug} className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-black">{index + 1}. {row.favorite_drug}</span>
-                    <span className="text-gold">{row.selection_count} selections</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-gradient-to-r from-gold to-ember" style={{ width: `${(row.selection_count / maxDrug) * 100}%` }} />
-                  </div>
-                  <div className="mt-2 text-xs text-white/50">{row.unique_users} unique users</div>
-                </div>
-              ))}
-              {(drugData?.drugs || []).length === 0 && <div className="rounded-2xl bg-white/10 p-5 text-white/60">No favorite drug answers found for this filter.</div>}
-            </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard label="Participants" value={data.total_participants} icon={FaUsers} />
+        <StatCard label="Active Rate" value={`${data.participation_rate || 0}%`} icon={FaBullseye} />
+        <StatCard label="Top Country" value={topCountry?.country || "-"} icon={FaMapMarkedAlt} />
+        <StatCard label="Top City" value={topCity?.city || "-"} icon={FaCity} />
+      </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-white/10">
-              <table className="w-full min-w-[960px] text-left text-sm">
-                <thead className="bg-black/25 text-white/55">
-                  <tr>
-                    <th className="p-3">Participant</th>
-                    <th>Country</th>
-                    <th>MR</th>
-                    <th>Match</th>
-                    <th>Match Status</th>
-                    <th>Prediction</th>
-                    <th>Drug</th>
-                    <th>Result</th>
-                    <th>Submitted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(drugData?.answers || []).map((answer) => (
-                    <tr key={answer.id} className="border-t border-white/10">
-                      <td className="p-3 font-bold">{answer.participant}</td>
-                      <td>{answer.country}</td>
-                      <td>{answer.mr_id}</td>
-                      <td>{answer.match}</td>
-                      <td>
-                        <div className="font-bold capitalize">{answer.match_status}</div>
-                        <div className="text-xs text-white/45">{answer.match_result}</div>
-                      </td>
-                      <td>{answer.predicted_team}</td>
-                      <td className="font-black text-gold">{answer.favorite_drug}</td>
-                      <td>{answer.is_correct === null ? "Pending" : answer.is_correct ? "Correct" : "No bonus"}</td>
-                      <td>{formatDateTime(answer.submitted_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </section>
+      <div className="grid gap-6 lg:grid-cols-4">
+        <Insight title="Highest Enrollment Country" value={topCountry?.country || "-"} detail={`${topCountry?.participants || 0} users, ${topCountry?.points || 0} pts`} />
+        <Insight title="Highest Enrollment City" value={topCity?.city || "-"} detail={`${topCity?.participants || 0} users, ${topCity?.participation_rate || 0}% active`} />
+        <Insight title="Most Active City" value={topActiveCity?.city || "-"} detail={`${topActiveCity?.participation_rate || 0}% active, ${topActiveCity?.participants || 0} users`} />
+        <Insight title="Best Accuracy Country" value={topAccuracyCountry?.country || "-"} detail={`${topAccuracyCountry?.accuracy || 0}% accuracy, ${topAccuracyCountry?.correct || 0} correct`} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <GeoPanel title="Country Performance" rows={countryRows} labelKey="country" maxUsers={maxCountryUsers} />
+        <GeoPanel title="City Performance" rows={cityRows} labelKey="city" maxUsers={maxCityUsers} />
+      </div>
     </div>
+  );
+}
+
+function Insight({ title, value, detail }) {
+  return (
+    <section className="glass rounded-3xl p-5">
+      <p className="text-xs font-bold uppercase tracking-widest text-white/45">{title}</p>
+      <div className="mt-2 text-2xl font-black text-gold">{value}</div>
+      <div className="mt-1 text-sm text-white/55">{detail}</div>
+    </section>
+  );
+}
+
+function GeoPanel({ title, rows, labelKey, maxUsers }) {
+  return (
+    <section className="glass rounded-3xl p-6">
+      <h2 className="mb-4 text-xl font-black">{title}</h2>
+      <div className="scroll-panel max-h-[560px] space-y-4 overflow-y-auto pr-2">
+        {rows.map((item) => (
+          <div key={item[labelKey]} className="rounded-2xl bg-white/10 p-4">
+            <div className="mb-2 flex justify-between gap-3 text-sm">
+              <span className="font-black text-gold">{item[labelKey]}</span>
+              <span className="text-white/65">{item.participants} users</span>
+            </div>
+            <div className="h-3 rounded-full bg-black/35">
+              <div className="h-full rounded-full bg-gradient-to-r from-gold to-ember" style={{ width: `${(item.participants / maxUsers) * 100}%` }} />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-white/55 md:grid-cols-4">
+              <span>{item.points} pts</span>
+              <span>{item.avg_points} avg pts</span>
+              <span>{item.participation_rate}% active</span>
+              <span>{item.accuracy}% accuracy</span>
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-white/40">
+              <span>{item.correct} correct</span>
+              <span>{item.wrong} no bonus</span>
+              <span>{item.pending} pending</span>
+            </div>
+          </div>
+        ))}
+        {!rows.length && <div className="rounded-2xl bg-white/10 p-5 text-white/60">No geography analytics available yet.</div>}
+      </div>
+    </section>
   );
 }

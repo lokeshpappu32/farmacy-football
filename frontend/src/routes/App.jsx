@@ -3,6 +3,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import AppShell from "../layouts/AppShell";
 import AdminAnalytics from "../pages/AdminAnalytics";
 import AdminDashboard from "../pages/AdminDashboard";
+import AdminDrugAnalytics from "../pages/AdminDrugAnalytics";
 import AdminLeaderboard from "../pages/AdminLeaderboard";
 import AdminMatches from "../pages/AdminMatches";
 import AdminUsers from "../pages/AdminUsers";
@@ -11,6 +12,7 @@ import Enroll from "../pages/Enroll";
 import Home from "../pages/Home";
 import Leaderboard from "../pages/Leaderboard";
 import Login from "../pages/Login";
+import MatchSchedule from "../pages/MatchSchedule";
 import MrDashboard from "../pages/MrDashboard";
 import Performance from "../pages/Performance";
 import Rules from "../pages/Rules";
@@ -26,6 +28,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/schedule" element={<MatchSchedule />} />
             <Route path="/performance" element={<Performance />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/rules" element={<Rules />} />
@@ -38,6 +41,7 @@ export default function App() {
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/leaderboard" element={<AdminLeaderboard />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/drug-analytics" element={<AdminDrugAnalytics />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute role="mr" />}>

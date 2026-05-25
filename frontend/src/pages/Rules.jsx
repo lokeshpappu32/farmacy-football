@@ -4,6 +4,7 @@ const rules = [
   ["Correct prediction", "+50 points when the selected team wins."],
   ["Edit window", "Predictions can be modified until match start time."],
   ["Wrong prediction", "No points are deducted."],
+  ["Cancelled match", "Participation points are reverted if a match is cancelled."],
 ];
 
 export default function Rules() {

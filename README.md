@@ -7,12 +7,12 @@ Farmacy Football is a full-stack FIFA football prediction campaign platform for 
 - React + Vite + JSX + Tailwind CSS
 - React Router, Axios, Framer Motion, React Icons
 - Flask, Flask SQLAlchemy, Flask JWT Extended, Flask CORS, Flask Limiter
-- PostgreSQL with psycopg2
+- PostgreSQL for Render deployment
 - Gunicorn on Render, with the React build served by Flask from one URL
 
 ## Local Setup
 
-1. Create a PostgreSQL database named `farmacy_football`.
+1. Create a PostgreSQL database named `farmacy_football`, or switch to the backed-up MySQL config for local-only development.
 2. Copy `.env.example` to `.env` and update secrets and `DATABASE_URL`.
 3. Install backend dependencies:
 
@@ -57,14 +57,13 @@ gunicorn wsgi:app --bind 0.0.0.0:5000
 
 ## Render Deployment
 
-Use `render.yaml` to create a single Python web service. Add environment variables from `.env.example`, especially:
+Use `render.yaml` to create one Python web service and one Render PostgreSQL database. Add environment variables from `.env.example`, especially:
 
-- `DATABASE_URL` is supplied automatically by the Render PostgreSQL database in the Blueprint.
+- `DATABASE_URL` is linked automatically from the Render database in `render.yaml`
 - `ADMIN_SECRET_CODE`
 - `SECRET_KEY`
 - `JWT_SECRET_KEY`
 - `PUBLIC_APP_URL`
-- `FOOTBALL_DATA_API_TOKEN`
 - `FOOTBALLDATA_IO_API_KEY`
 
 The Render build command installs Python packages, installs frontend packages, builds React, and starts Gunicorn. Flask serves `frontend/dist` so the app uses one deployed URL.

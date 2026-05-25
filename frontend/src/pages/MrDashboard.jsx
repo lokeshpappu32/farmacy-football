@@ -1,4 +1,4 @@
-import { FaBullseye, FaClock, FaTimesCircle, FaUsers } from "react-icons/fa";
+import { FaBullseye, FaClock, FaMapMarkerAlt, FaPills, FaUsers } from "react-icons/fa";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StatCard from "../components/StatCard";
 import { useApi } from "../hooks/useApi";
@@ -20,9 +20,15 @@ export default function MrDashboard() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Participants" value={data.summary.participants} icon={FaUsers} />
-        <StatCard label="Correct" value={data.summary.correct_predictions} icon={FaBullseye} />
-        <StatCard label="Wrong" value={data.summary.wrong_predictions} icon={FaTimesCircle} />
+        <StatCard label="Participation" value={`${data.summary.participation_rate}%`} icon={FaBullseye} />
+        <StatCard label="Cities" value={data.summary.cities} icon={FaMapMarkerAlt} />
         <StatCard label="Pending" value={data.summary.pending_predictions} icon={FaClock} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <MrInsightList title="City Performance" rows={data.city_analytics || []} labelKey="city" />
+        <MrInsightList title="Country Performance" rows={data.country_analytics || []} labelKey="country" />
+        <MrInsightList title="Favorite Drugs" rows={data.top_drugs || []} labelKey="favorite_drug" compact icon={FaPills} />
       </div>
 
       <div className="glass rounded-3xl p-5">
@@ -43,6 +49,7 @@ export default function MrDashboard() {
                 <th className="p-3">MR Rank</th>
                 <th>Participant</th>
                 <th>Country</th>
+                <th>City</th>
                 <th>Mobile</th>
                 <th>Points</th>
                 <th>Correct</th>
@@ -57,6 +64,7 @@ export default function MrDashboard() {
                   <td className="p-3 font-black text-gold">#{user.rank}</td>
                   <td className="font-bold">{user.full_name}</td>
                   <td>{user.country}</td>
+                  <td>{user.city || "-"}</td>
                   <td>{user.mobile_number}</td>
                   <td className="font-black text-gold">{user.total_points}</td>
                   <td>{user.correct}</td>
@@ -76,5 +84,27 @@ export default function MrDashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+function MrInsightList({ title, rows, labelKey, compact = false }) {
+  return (
+    <section className="glass rounded-3xl p-5">
+      <h2 className="mb-4 text-lg font-black">{title}</h2>
+      <div className="scroll-panel max-h-[300px] space-y-3 overflow-y-auto pr-2">
+        {rows.map((row) => (
+          <div key={row[labelKey]} className="rounded-2xl bg-white/10 p-4">
+            <div className="flex justify-between gap-3">
+              <span className="font-black text-gold">{row[labelKey]}</span>
+              <span className="text-sm text-white/60">{row.participants ?? row.selection_count} {compact ? "selections" : "users"}</span>
+            </div>
+            <div className="mt-2 text-xs text-white/50">
+              {compact ? `${row.unique_users} unique users` : `${row.points} pts - ${row.participation_rate}% active - ${row.accuracy}% accuracy`}
+            </div>
+          </div>
+        ))}
+        {!rows.length && <div className="rounded-2xl bg-white/10 p-4 text-white/55">No data available yet.</div>}
+      </div>
+    </section>
   );
 }

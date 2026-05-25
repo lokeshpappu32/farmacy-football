@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
+from app.utils.serialization import utc_iso
 
 
 class ApiSyncState(db.Model):
@@ -64,5 +65,5 @@ class ApiCallLog(db.Model):
             "requests_limit_snapshot": self.requests_limit_snapshot,
             "response_time_ms": self.response_time_ms,
             "error_message": self.error_message,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

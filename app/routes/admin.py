@@ -9,6 +9,7 @@ from app.models import AdminLog, ApiCallLog, ApiSyncState, Country, Match, Parti
 from app.services.analytics_service import admin_analytics, leaderboard
 from app.services.footballdata_io_service import maybe_sync_football_data
 from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, queue_prediction_awards, reschedule_match, sync_matches_from_api
+from app.utils.serialization import utc_iso
 from app.utils.validators import ValidationError, clean_email, clean_mobile, parse_utc_datetime, require_fields
 
 admin_bp = Blueprint("admin", __name__)
@@ -28,7 +29,7 @@ def dashboard():
         "api_sync_states": [
             {
                 "sync_type": state.sync_type,
-                "last_synced_at": state.last_synced_at.isoformat() if state.last_synced_at else None,
+                "last_synced_at": utc_iso(state.last_synced_at),
                 "last_status": state.last_status,
                 "last_error": state.last_error,
                 "requests_used_snapshot": state.requests_used_snapshot,
@@ -182,6 +183,7 @@ def users():
                 Participant.full_name.ilike(f"%{q}%"),
                 Participant.mobile_number.ilike(f"%{q}%"),
                 Participant.country.ilike(f"%{q}%"),
+                Participant.city.ilike(f"%{q}%"),
                 Participant.mr_id.ilike(f"%{q}%"),
             )
         )
@@ -199,7 +201,7 @@ def update_user(user_id):
         user.mobile_number = clean_mobile(payload["mobile_number"])
     if "email" in payload:
         user.email = clean_email(payload.get("email"))
-    for field in ["full_name", "country", "mr_id"]:
+    for field in ["full_name", "country", "city", "mr_id"]:
         if field in payload:
             setattr(user, field, str(payload[field]).strip())
     if "total_points" in payload:
@@ -227,6 +229,7 @@ def analytics():
 def drug_analytics():
     maybe_sync_football_data("admin_analytics", role="admin", user_id="admin", sync_types=["results"])
     country = request.args.get("country", "").strip()
+    city = request.args.get("city", "").strip()
     mr_id = request.args.get("mr_id", "").strip()
     sort = request.args.get("sort", "most").strip().lower()
 
@@ -240,6 +243,8 @@ def drug_analytics():
     )
     if country:
         query = query.filter(Participant.country == country)
+    if city:
+        query = query.filter(Participant.city == city)
     if mr_id:
         query = query.filter(Participant.mr_id == mr_id.upper())
     order = db.asc("selection_count") if sort == "least" else db.desc("selection_count")
@@ -248,15 +253,22 @@ def drug_analytics():
     answer_query = Prediction.query.join(Participant, Participant.id == Prediction.participant_id).join(Match, Match.id == Prediction.match_id)
     if country:
         answer_query = answer_query.filter(Participant.country == country)
+    if city:
+        answer_query = answer_query.filter(Participant.city == city)
     if mr_id:
         answer_query = answer_query.filter(Participant.mr_id == mr_id.upper())
 
     countries = [row[0] for row in db.session.query(Participant.country).filter(Participant.country.isnot(None)).distinct().order_by(Participant.country).all()]
+    cities_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
+    if country:
+        cities_query = cities_query.filter(Participant.country == country)
+    cities = [row[0] for row in cities_query.distinct().order_by(Participant.city).all()]
     mr_ids = [row[0] for row in db.session.query(Participant.mr_id).filter(Participant.mr_id.isnot(None), Participant.mr_id != "").distinct().order_by(Participant.mr_id).all()]
 
     return {
-        "filters": {"country": country, "mr_id": mr_id.upper() if mr_id else "", "sort": sort},
+        "filters": {"country": country, "city": city, "mr_id": mr_id.upper() if mr_id else "", "sort": sort},
         "countries": countries,
+        "cities": cities,
         "mr_ids": mr_ids,
         "drugs": [
             {"favorite_drug": drug, "selection_count": int(count), "unique_users": int(unique_users)}
@@ -267,7 +279,9 @@ def drug_analytics():
                 "id": prediction.id,
                 "participant": prediction.participant.full_name,
                 "mobile_number": prediction.participant.mobile_number,
+                "email": prediction.participant.email,
                 "country": prediction.participant.country,
+                "city": prediction.participant.city,
                 "mr_id": prediction.participant.mr_id,
                 "match": f"{prediction.match.team1} vs {prediction.match.team2}",
                 "match_status": prediction.match.status,
@@ -275,7 +289,7 @@ def drug_analytics():
                 "predicted_team": prediction.predicted_team,
                 "favorite_drug": prediction.favorite_drug,
                 "is_correct": prediction.is_correct,
-                "submitted_at": prediction.submitted_at.isoformat() if prediction.submitted_at else None,
+                "submitted_at": utc_iso(prediction.submitted_at),
             }
             for prediction in answer_query.order_by(Prediction.submitted_at.desc()).limit(500).all()
         ],
@@ -287,9 +301,9 @@ def drug_analytics():
 def export_users():
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id", "full_name", "mobile_number", "email", "country", "mr_id", "total_points", "created_at"])
+    writer.writerow(["id", "full_name", "mobile_number", "email", "country", "city", "mr_id", "total_points", "created_at"])
     for user in Participant.query.order_by(Participant.created_at.desc()).all():
-        writer.writerow([user.id, user.full_name, user.mobile_number, user.email, user.country, user.mr_id, user.total_points, user.created_at])
+        writer.writerow([user.id, user.full_name, user.mobile_number, user.email, user.country, user.city, user.mr_id, user.total_points, user.created_at])
     return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=farmacy-users.csv"})
 
 

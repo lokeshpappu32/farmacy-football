@@ -14,7 +14,7 @@ auth_bp = Blueprint("auth", __name__)
 def enroll():
     payload = request.get_json(silent=True) or {}
     try:
-        require_fields(payload, ["full_name", "country_code", "mobile_number", "email", "country", "mr_id"])
+        require_fields(payload, ["full_name", "country_code", "mobile_number", "email", "country", "city", "mr_id"])
         country_code, mobile = compose_mobile(payload["country_code"], payload["mobile_number"])
         if Participant.query.filter_by(mobile_number=mobile).first():
             return {"message": "This mobile number is already enrolled."}, 409
@@ -24,6 +24,7 @@ def enroll():
             mobile_number=mobile,
             email=clean_email(payload["email"]),
             country=str(payload["country"]).strip(),
+            city=str(payload["city"]).strip(),
             mr_id=str(payload["mr_id"]).strip(),
             total_points=0,
         )

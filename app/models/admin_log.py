@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
+from app.utils.serialization import utc_iso
 
 
 class AdminLog(db.Model):
@@ -16,5 +17,5 @@ class AdminLog(db.Model):
             "id": self.id,
             "admin_action": self.admin_action,
             "details": self.details,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

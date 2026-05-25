@@ -3,7 +3,7 @@ from flask_jwt_extended import get_jwt_identity
 
 from app.auth.guards import mr_required
 from app.models import Participant, Prediction
-from app.services.analytics_service import leaderboard
+from app.services.analytics_service import favorite_drug_summary, grouped_participant_analytics, leaderboard
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 mr_bp = Blueprint("mr", __name__)
@@ -23,6 +23,7 @@ def mr_dashboard():
     pending = sum(1 for prediction in predictions if prediction.is_correct is None)
     total_points = sum(user.total_points or 0 for user in users)
     global_ranks = {row["id"]: row["rank"] for row in leaderboard(limit=100000)}
+    base_query = Participant.query.filter_by(mr_id=mr_id)
 
     prediction_map = {}
     for prediction in predictions:
@@ -45,7 +46,13 @@ def mr_dashboard():
             "wrong_predictions": wrong,
             "pending_predictions": pending,
             "accuracy": round((correct / max(correct + wrong, 1)) * 100, 1),
+            "participation_rate": round((len({prediction.participant_id for prediction in predictions}) / max(len(users), 1)) * 100, 1),
+            "countries": len({user.country for user in users if user.country}),
+            "cities": len({user.city for user in users if user.city}),
         },
+        "country_analytics": grouped_participant_analytics("country", base_query=base_query),
+        "city_analytics": grouped_participant_analytics("city", base_query=base_query),
+        "top_drugs": favorite_drug_summary(participant_ids=user_ids),
         "leaderboard": [
             {
                 **user.to_dict(include_private=True),
