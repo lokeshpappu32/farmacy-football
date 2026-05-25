@@ -1,9 +1,11 @@
 export function formatDateTime(value) {
   if (!value) return "TBA";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "TBA";
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 export function timeLeft(target) {

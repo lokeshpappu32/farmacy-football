@@ -11,7 +11,6 @@ from werkzeug.exceptions import HTTPException
 from app.config import Config
 from app.extensions import cors, db, jwt, limiter, migrate
 from app.routes import register_blueprints
-from app.schedulers.jobs import init_scheduler
 
 
 def create_app(config_class=Config):
@@ -29,9 +28,6 @@ def create_app(config_class=Config):
     register_blueprints(app)
     register_error_handlers(app)
     register_frontend_routes(app)
-
-    with app.app_context():
-        init_scheduler(app)
 
     return app
 

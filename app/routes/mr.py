@@ -4,6 +4,7 @@ from flask_jwt_extended import get_jwt_identity
 from app.auth.guards import mr_required
 from app.models import Participant, Prediction
 from app.services.analytics_service import leaderboard
+from app.services.footballdata_io_service import maybe_sync_football_data
 
 mr_bp = Blueprint("mr", __name__)
 
@@ -12,6 +13,7 @@ mr_bp = Blueprint("mr", __name__)
 @mr_required
 def mr_dashboard():
     mr_id = str(get_jwt_identity()).upper()
+    maybe_sync_football_data("mr_dashboard", role="mr", user_id=mr_id, sync_types=["results"])
     users = Participant.query.filter_by(mr_id=mr_id).order_by(Participant.total_points.desc(), Participant.created_at.asc()).all()
     user_ids = [user.id for user in users]
     predictions = Prediction.query.filter(Prediction.participant_id.in_(user_ids)).all() if user_ids else []

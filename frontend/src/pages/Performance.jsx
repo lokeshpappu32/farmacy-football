@@ -52,7 +52,9 @@ export default function Performance() {
                   <div className="font-bold">{item.reason}</div>
                   <div className="text-xs text-white/55">{formatDateTime(item.created_at)}</div>
                 </div>
-                <div className="text-xl font-black text-gold">+{item.points}</div>
+                <div className={`text-xl font-black ${item.points < 0 ? "text-ember" : "text-gold"}`}>
+                  {item.points > 0 ? `+${item.points}` : item.points}
+                </div>
               </div>
             ))}
           </div>

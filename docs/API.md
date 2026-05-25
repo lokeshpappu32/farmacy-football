@@ -74,10 +74,6 @@ Returns participant totals, predictions, match totals, country analytics, top le
 
 Syncs matches from football-data.org.
 
-### POST `/admin/reminders`
-
-Runs the Twilio reminder job manually.
-
 ### GET `/admin/matches`
 
 Lists all matches.

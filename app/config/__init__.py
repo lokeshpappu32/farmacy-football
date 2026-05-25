@@ -11,12 +11,13 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     ADMIN_SECRET_CODE = os.getenv("ADMIN_SECRET_CODE", "ADMIN-FARMACY-CHANGE-ME")
 
-    SQLALCHEMY_DATABASE_URI = os.getenv(
+    database_url = os.getenv(
         "DATABASE_URL",
-        "mysql+pymysql://root:password@localhost:3306/farmacy_football",
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/farmacy_football",
     )
-    if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -27,14 +28,15 @@ class Config:
 
     FOOTBALL_DATA_API_TOKEN = os.getenv("FOOTBALL_DATA_API_TOKEN", "")
     FOOTBALL_DATA_COMPETITION = os.getenv("FOOTBALL_DATA_COMPETITION", "WC")
+    FOOTBALLDATA_IO_API_KEY = os.getenv("FOOTBALLDATA_IO_API_KEY", "")
+    FOOTBALLDATA_IO_BASE_URL = os.getenv("FOOTBALLDATA_IO_BASE_URL", "https://footballdata.io/api/v1")
+    FOOTBALLDATA_IO_LEAGUE_IDS = os.getenv("FOOTBALLDATA_IO_LEAGUE_IDS", "50")
+    FOOTBALLDATA_IO_SEASON_ID = os.getenv("FOOTBALLDATA_IO_SEASON_ID", "")
+    FOOTBALLDATA_IO_LANG = os.getenv("FOOTBALLDATA_IO_LANG", "en")
+    FOOTBALLDATA_IO_SYNC_ENABLED = os.getenv("FOOTBALLDATA_IO_SYNC_ENABLED", "false").lower() == "true"
     PUBLIC_APP_URL = os.getenv("PUBLIC_APP_URL", "http://localhost:5000")
-
-    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
-    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
-    TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
 
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
-    SCHEDULER_ENABLED = os.getenv("SCHEDULER_ENABLED", "true").lower() == "true"
 
     FRONTEND_DIST = BASE_DIR / "frontend" / "dist"

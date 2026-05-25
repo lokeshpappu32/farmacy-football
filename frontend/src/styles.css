@@ -73,3 +73,22 @@ body {
   background: rgba(255,255,255,.12);
   transform: translateY(-1px);
 }
+
+.scroll-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(248, 201, 69, .55) rgba(255, 255, 255, .08);
+}
+
+.scroll-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-panel::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+
+.scroll-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(248, 201, 69, .55);
+}

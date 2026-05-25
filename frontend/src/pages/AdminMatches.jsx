@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Toast from "../components/Toast";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
@@ -9,6 +10,8 @@ const empty = { team1_iso: "", team2_iso: "", match_datetime: "" };
 export default function AdminMatches() {
   const [form, setForm] = useState(empty);
   const [actions, setActions] = useState({});
+  const [toast, setToast] = useState("");
+  const [toastTone, setToastTone] = useState("gold");
   const [countries, setCountries] = useState([]);
   const { data, loading, error, refresh } = useApi(async () => (await api.get("/admin/matches")).data, []);
 
@@ -32,28 +35,62 @@ export default function AdminMatches() {
       [matchId]: { action: "winner", winner_team: "", match_datetime: "", ...(current[matchId] || {}), [key]: value },
     }));
   };
+  const changeActionType = (match, action) => {
+    setActions((current) => ({
+      ...current,
+      [match.id]: {
+        action,
+        winner_team: action === "winner" ? current[match.id]?.winner_team || "" : "",
+        match_datetime: action === "reschedule" ? current[match.id]?.match_datetime || toDateTimeLocal(match.match_datetime) : "",
+      },
+    }));
+  };
   const create = async (event) => {
     event.preventDefault();
-    await api.post("/admin/matches", { ...form, match_datetime: new Date(form.match_datetime).toISOString() });
-    setForm(empty);
-    refresh();
+    try {
+      await api.post("/admin/matches", { ...form, match_datetime: toUtcIso(form.match_datetime) });
+      setForm(empty);
+      setToastTone("gold");
+      setToast("Match created.");
+      refresh();
+    } catch (err) {
+      setToastTone("error");
+      setToast(err.message);
+    }
   };
   const applyAction = async (match) => {
     const state = actions[match.id] || { action: "winner" };
     const payload = { action: state.action };
     if (state.action === "winner") {
-      if (!state.winner_team) return;
+      if (!state.winner_team) {
+        setToastTone("error");
+        setToast("Select a winning team.");
+        return;
+      }
       payload.winner_team = state.winner_team;
     }
     if (state.action === "reschedule") {
-      if (!state.match_datetime) return;
-      payload.match_datetime = new Date(state.match_datetime).toISOString();
+      if (!state.match_datetime) {
+        setToastTone("error");
+        setToast("Select the new match date and time.");
+        return;
+      }
+      payload.match_datetime = toUtcIso(state.match_datetime);
     }
-    await api.post(`/admin/matches/${match.id}/action`, payload);
-    refresh();
+    try {
+      const { data } = await api.post(`/admin/matches/${match.id}/action`, payload);
+      setToastTone("gold");
+      setToast(data.message || "Match updated.");
+      setActions((current) => ({ ...current, [match.id]: { action: "winner", winner_team: "", match_datetime: "" } }));
+      refresh();
+    } catch (err) {
+      setToastTone("error");
+      setToast(err.message);
+    }
   };
   return (
     <div className="space-y-6">
+      <Toast message={toast} tone={toastTone} onClose={() => setToast("")} />
       <h1 className="text-3xl font-black">Match Management</h1>
       <form onSubmit={create} className="glass grid gap-3 rounded-3xl p-5 md:grid-cols-[1fr_1fr_1fr_auto]">
         <CountrySelect label="Team 1" value={form.team1_iso} countries={countries} onChange={(value) => update("team1_iso", value)} />
@@ -67,11 +104,14 @@ export default function AdminMatches() {
       <div className="glass rounded-3xl p-4">
         {loading ? <LoadingSkeleton rows={6} /> : error ? <div>{error}</div> : (
           <div className="space-y-3">
-            {data.matches.map((match) => (
+            {(data?.matches || []).map((match) => (
               <div key={match.id} className="grid gap-3 rounded-2xl bg-white/10 p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
                   <div className="text-lg font-black">{match.team1} vs {match.team2}</div>
-                  <div className="text-sm text-white/60">{formatDateTime(match.match_datetime)} - {match.result_label || match.status}</div>
+                  <div className="mt-1 grid gap-1 text-sm text-white/60">
+                    <span>UTC: {formatUtcDateTime(match.match_datetime)}</span>
+                    <span>Local: {formatDateTime(match.match_datetime)} - {match.result_label || match.status}</span>
+                  </div>
                 </div>
                 {["completed", "cancelled"].includes(match.status) ? (
                   <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-bold text-white/55">
@@ -82,7 +122,7 @@ export default function AdminMatches() {
                     <select
                       className="input"
                       value={actions[match.id]?.action || "winner"}
-                      onChange={(event) => updateAction(match.id, "action", event.target.value)}
+                      onChange={(event) => changeActionType(match, event.target.value)}
                     >
                       <option className="bg-black" value="winner">Winner</option>
                       <option className="bg-black" value="draw">Draw</option>
@@ -119,6 +159,33 @@ export default function AdminMatches() {
       </div>
     </div>
   );
+}
+
+function toDateTimeLocal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return value.slice(0, 16);
+}
+
+function toUtcIso(dateTime) {
+  if (!dateTime) return dateTime;
+  return `${dateTime}:00+00:00`;
+}
+
+function formatUtcDateTime(value) {
+  if (!value) return "TBA";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "TBA";
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(date);
 }
 
 function CountrySelect({ label, value, countries, onChange }) {

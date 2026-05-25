@@ -6,7 +6,7 @@ from flask import current_app
 
 from app.extensions import db
 from app.models import AdminLog, Match, Prediction
-from app.services.points_service import WINNER_POINTS, add_points
+from app.services.points_service import WINNER_POINTS, add_points, reverse_cancelled_match_participation
 from app.utils.time import as_utc
 
 
@@ -125,43 +125,48 @@ def queue_prediction_awards(match_id):
     Thread(target=runner, daemon=True, name=f"award-predictions-match-{match_id}").start()
 
 
-def finalize_draw(match):
+def finalize_draw(match, source="manual"):
     match.winner_team = "Draw"
     match.status = "completed"
     marked = 0
     for prediction in Prediction.query.filter_by(match_id=match.id, is_correct=None).all():
         prediction.is_correct = False
         marked += 1
-    db.session.add(AdminLog(admin_action="manual_draw_update", details=f"Match {match.id} marked as draw. {marked} predictions closed."))
+    db.session.add(AdminLog(admin_action=f"{source}_draw_update", details=f"Match {match.id} marked as draw. {marked} predictions closed."))
     db.session.commit()
     return marked
 
 
-def cancel_match(match):
+def cancel_match(match, source="manual"):
     match.winner_team = None
     match.status = "cancelled"
     marked = 0
-    for prediction in Prediction.query.filter_by(match_id=match.id, is_correct=None).all():
+    reversed_count = 0
+    for prediction in Prediction.query.filter_by(match_id=match.id).all():
+        if reverse_cancelled_match_participation(prediction):
+            reversed_count += 1
         prediction.is_correct = False
         marked += 1
-    db.session.add(AdminLog(admin_action="cancel_match", details=f"Match {match.id} cancelled. {marked} predictions closed."))
+    action = "cancel_match" if source == "manual" else f"{source}_cancel_match"
+    db.session.add(AdminLog(admin_action=action, details=f"Match {match.id} cancelled. {marked} predictions closed. {reversed_count} participation rewards reversed."))
     db.session.commit()
     return marked
 
 
-def reschedule_match(match, match_datetime):
+def reschedule_match(match, match_datetime, source="manual"):
     match.match_datetime = match_datetime
     match.status = "scheduled"
     match.winner_team = None
-    db.session.add(AdminLog(admin_action="reschedule_match", details=f"Match {match.id} rescheduled to {match_datetime.isoformat()}"))
+    action = "reschedule_match" if source == "manual" else f"{source}_reschedule_match"
+    db.session.add(AdminLog(admin_action=action, details=f"Match {match.id} rescheduled to {match_datetime.isoformat()}"))
     db.session.commit()
     return match
 
 
-def manual_update_winner(match, winner_team):
+def manual_update_winner(match, winner_team, source="manual"):
     if winner_team not in {match.team1, match.team2}:
         raise ValueError("Winner must match one of the participating teams.")
     match.winner_team = winner_team
     match.status = "completed"
-    db.session.add(AdminLog(admin_action="manual_winner_update", details=f"Match {match.id} winner set to {winner_team}"))
+    db.session.add(AdminLog(admin_action=f"{source}_winner_update", details=f"Match {match.id} winner set to {winner_team}"))
     db.session.commit()

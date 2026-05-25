@@ -1,14 +1,14 @@
 import csv
 from io import StringIO
 
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, current_app, request
 
 from app.auth.guards import admin_required
 from app.extensions import db
-from app.models import AdminLog, Country, Match, Participant, Prediction
+from app.models import AdminLog, ApiCallLog, ApiSyncState, Country, Match, Participant, Prediction
 from app.services.analytics_service import admin_analytics, leaderboard
+from app.services.footballdata_io_service import maybe_sync_football_data
 from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, queue_prediction_awards, reschedule_match, sync_matches_from_api
-from app.services.twilio_service import send_match_reminders
 from app.utils.validators import ValidationError, clean_email, clean_mobile, parse_utc_datetime, require_fields
 
 admin_bp = Blueprint("admin", __name__)
@@ -17,31 +17,43 @@ admin_bp = Blueprint("admin", __name__)
 @admin_bp.get("/dashboard")
 @admin_required
 def dashboard():
+    maybe_sync_football_data("admin_dashboard", role="admin", user_id="admin", sync_types=["upcoming", "live", "results", "usage", "health"])
     logs = AdminLog.query.order_by(AdminLog.created_at.desc()).limit(20).all()
-    return {**admin_analytics(), "logs": [log.to_dict() for log in logs]}
+    api_logs = ApiCallLog.query.order_by(ApiCallLog.created_at.desc()).limit(20).all()
+    sync_states = ApiSyncState.query.order_by(ApiSyncState.sync_type.asc()).all()
+    return {
+        **admin_analytics(),
+        "logs": [log.to_dict() for log in logs],
+        "api_logs": [log.to_dict() for log in api_logs],
+        "api_sync_states": [
+            {
+                "sync_type": state.sync_type,
+                "last_synced_at": state.last_synced_at.isoformat() if state.last_synced_at else None,
+                "last_status": state.last_status,
+                "last_error": state.last_error,
+                "requests_used_snapshot": state.requests_used_snapshot,
+                "requests_limit_snapshot": state.requests_limit_snapshot,
+            }
+            for state in sync_states
+        ],
+    }
 
 
 @admin_bp.post("/sync-matches")
 @admin_required
 def sync_matches():
+    if current_app.config.get("FOOTBALLDATA_IO_SYNC_ENABLED"):
+        return maybe_sync_football_data("admin_matches", role="admin", user_id="admin", sync_types=["upcoming", "live", "results", "usage", "health"])
     try:
         return sync_matches_from_api()
     except Exception as exc:
         return {"message": f"Match sync failed: {exc}"}, 502
 
 
-@admin_bp.post("/reminders")
-@admin_required
-def resend_reminders():
-    sent = send_match_reminders()
-    db.session.add(AdminLog(admin_action="resend_reminders", details=f"Reminder send attempted. Sent count: {sent}"))
-    db.session.commit()
-    return {"message": "Reminder job completed.", "sent": sent}
-
-
 @admin_bp.get("/matches")
 @admin_required
 def admin_matches():
+    maybe_sync_football_data("admin_matches", role="admin", user_id="admin", sync_types=["upcoming", "live", "results"])
     return {"matches": [match.to_dict() for match in Match.query.order_by(Match.match_datetime.desc()).all()]}
 
 
@@ -206,12 +218,14 @@ def admin_leaderboard():
 @admin_bp.get("/analytics")
 @admin_required
 def analytics():
+    maybe_sync_football_data("admin_analytics", role="admin", user_id="admin", sync_types=["results"])
     return admin_analytics()
 
 
 @admin_bp.get("/drug-analytics")
 @admin_required
 def drug_analytics():
+    maybe_sync_football_data("admin_analytics", role="admin", user_id="admin", sync_types=["results"])
     country = request.args.get("country", "").strip()
     mr_id = request.args.get("mr_id", "").strip()
     sort = request.args.get("sort", "most").strip().lower()
@@ -256,6 +270,8 @@ def drug_analytics():
                 "country": prediction.participant.country,
                 "mr_id": prediction.participant.mr_id,
                 "match": f"{prediction.match.team1} vs {prediction.match.team2}",
+                "match_status": prediction.match.status,
+                "match_result": prediction.match.result_label(),
                 "predicted_team": prediction.predicted_team,
                 "favorite_drug": prediction.favorite_drug,
                 "is_correct": prediction.is_correct,

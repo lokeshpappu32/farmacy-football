@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
+from app.utils.time import as_utc
 
 
 class Match(db.Model):
@@ -12,6 +13,8 @@ class Match(db.Model):
     team2 = db.Column(db.String(120), nullable=False)
     team1_logo = db.Column(db.String(500), nullable=True)
     team2_logo = db.Column(db.String(500), nullable=True)
+    venue_name = db.Column(db.String(180), nullable=True)
+    venue_location = db.Column(db.String(240), nullable=True)
     match_datetime = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     winner_team = db.Column(db.String(120), nullable=True)
     status = db.Column(db.String(40), nullable=False, default="scheduled", index=True)
@@ -33,12 +36,14 @@ class Match(db.Model):
             "team2": self.team2,
             "team1_logo": self.team1_logo,
             "team2_logo": self.team2_logo,
-            "match_datetime": self.match_datetime.isoformat() if self.match_datetime else None,
+            "venue_name": self.venue_name,
+            "venue_location": self.venue_location,
+            "match_datetime": utc_iso(self.match_datetime),
             "winner_team": self.winner_team,
             "status": self.status,
             "result_label": self.result_label(),
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
         }
 
     def result_label(self):
@@ -49,3 +54,9 @@ class Match(db.Model):
         if self.winner_team:
             return f"{self.winner_team} won"
         return self.status.title()
+
+
+def utc_iso(value):
+    if not value:
+        return None
+    return as_utc(value).isoformat().replace("+00:00", "Z")

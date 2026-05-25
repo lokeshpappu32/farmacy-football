@@ -2,7 +2,7 @@ services:
   - type: web
     name: farmacy-football
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt && cd frontend && npm install && npm run build
     startCommand: python scripts/seed.py && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
     envVars:
@@ -22,24 +22,28 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      - key: SCHEDULER_ENABLED
-        value: false
       - key: RATELIMIT_STORAGE_URI
         value: memory://
       - key: FOOTBALL_DATA_API_TOKEN
         sync: false
       - key: FOOTBALL_DATA_COMPETITION
         value: WC
-      - key: TWILIO_ACCOUNT_SID
+      - key: FOOTBALLDATA_IO_API_KEY
         sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_PHONE_NUMBER
-        sync: false
+      - key: FOOTBALLDATA_IO_BASE_URL
+        value: https://footballdata.io/api/v1
+      - key: FOOTBALLDATA_IO_LEAGUE_IDS
+        value: "50"
+      - key: FOOTBALLDATA_IO_SEASON_ID
+        value: "618"
+      - key: FOOTBALLDATA_IO_LANG
+        value: en
+      - key: FOOTBALLDATA_IO_SYNC_ENABLED
+        value: "true"
 
 databases:
   - name: farmacy-football-db
-    plan: free
+    plan: starter
     databaseName: farmacy_football
     user: farmacy_user
     postgresMajorVersion: "16"

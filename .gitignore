@@ -26,7 +26,8 @@ frontend/pnpm-debug.log*
 
 *.log
 .backup/
-
+docs/
+scripts/generate_client_ppt.py
 *.db
 *.sqlite
 *.sqlite3

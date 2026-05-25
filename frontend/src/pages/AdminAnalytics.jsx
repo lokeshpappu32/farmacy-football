@@ -82,13 +82,14 @@ export default function AdminAnalytics() {
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-white/10">
-              <table className="w-full min-w-[840px] text-left text-sm">
+              <table className="w-full min-w-[960px] text-left text-sm">
                 <thead className="bg-black/25 text-white/55">
                   <tr>
                     <th className="p-3">Participant</th>
                     <th>Country</th>
                     <th>MR</th>
                     <th>Match</th>
+                    <th>Match Status</th>
                     <th>Prediction</th>
                     <th>Drug</th>
                     <th>Result</th>
@@ -102,6 +103,10 @@ export default function AdminAnalytics() {
                       <td>{answer.country}</td>
                       <td>{answer.mr_id}</td>
                       <td>{answer.match}</td>
+                      <td>
+                        <div className="font-bold capitalize">{answer.match_status}</div>
+                        <div className="text-xs text-white/45">{answer.match_result}</div>
+                      </td>
                       <td>{answer.predicted_team}</td>
                       <td className="font-black text-gold">{answer.favorite_drug}</td>
                       <td>{answer.is_correct === null ? "Pending" : answer.is_correct ? "Correct" : "No bonus"}</td>

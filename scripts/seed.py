@@ -79,6 +79,28 @@ def ensure_schema_columns():
             suffix = " AFTER country_code" if db.engine.dialect.name == "mysql" else ""
             connection.execute(text(f"ALTER TABLE countries ADD COLUMN flag_url VARCHAR(500) NULL{suffix}"))
 
+    match_columns = {column["name"] for column in inspector.get_columns("matches")}
+    with db.engine.begin() as connection:
+        if "venue_name" not in match_columns:
+            suffix = " AFTER team2_logo" if db.engine.dialect.name == "mysql" else ""
+            connection.execute(text(f"ALTER TABLE matches ADD COLUMN venue_name VARCHAR(180) NULL{suffix}"))
+        if "venue_location" not in match_columns:
+            suffix = " AFTER venue_name" if db.engine.dialect.name == "mysql" else ""
+            connection.execute(text(f"ALTER TABLE matches ADD COLUMN venue_location VARCHAR(240) NULL{suffix}"))
+
+    if inspector.has_table("api_call_logs"):
+        api_log_columns = {column["name"] for column in inspector.get_columns("api_call_logs")}
+        with db.engine.begin() as connection:
+            if "requests_remaining_snapshot" not in api_log_columns:
+                suffix = " AFTER request_count" if db.engine.dialect.name == "mysql" else ""
+                connection.execute(text(f"ALTER TABLE api_call_logs ADD COLUMN requests_remaining_snapshot INTEGER NULL{suffix}"))
+            if "requests_used_snapshot" not in api_log_columns:
+                suffix = " AFTER requests_remaining_snapshot" if db.engine.dialect.name == "mysql" else ""
+                connection.execute(text(f"ALTER TABLE api_call_logs ADD COLUMN requests_used_snapshot INTEGER NULL{suffix}"))
+            if "requests_limit_snapshot" not in api_log_columns:
+                suffix = " AFTER requests_used_snapshot" if db.engine.dialect.name == "mysql" else ""
+                connection.execute(text(f"ALTER TABLE api_call_logs ADD COLUMN requests_limit_snapshot INTEGER NULL{suffix}"))
+
 
 def seed_countries():
     for name, iso_code, country_code in COUNTRIES:
@@ -173,7 +195,7 @@ def seed_predictions_and_points():
                 db.session.add(prediction)
             prediction.predicted_team = predicted_team
             prediction.favorite_drug = favorite_drug
-            prediction.participation_points = PARTICIPATION_POINTS
+            prediction.participation_points = 0 if match.status == "cancelled" else PARTICIPATION_POINTS
             prediction.winner_points = 0
             if match.status == "completed" and match.winner_team and match.winner_team != "Draw":
                 prediction.is_correct = predicted_team == match.winner_team

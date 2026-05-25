@@ -6,13 +6,13 @@ Farmacy Football is a full-stack FIFA football prediction campaign platform for 
 
 - React + Vite + JSX + Tailwind CSS
 - React Router, Axios, Framer Motion, React Icons
-- Flask, Flask SQLAlchemy, Flask JWT Extended, APScheduler, Flask CORS, Flask Limiter
-- MySQL with PyMySQL
+- Flask, Flask SQLAlchemy, Flask JWT Extended, Flask CORS, Flask Limiter
+- PostgreSQL with psycopg2
 - Gunicorn on Render, with the React build served by Flask from one URL
 
 ## Local Setup
 
-1. Create a MySQL database named `farmacy_football`.
+1. Create a PostgreSQL database named `farmacy_football`.
 2. Copy `.env.example` to `.env` and update secrets and `DATABASE_URL`.
 3. Install backend dependencies:
 
@@ -59,13 +59,13 @@ gunicorn wsgi:app --bind 0.0.0.0:5000
 
 Use `render.yaml` to create a single Python web service. Add environment variables from `.env.example`, especially:
 
-- `DATABASE_URL`
+- `DATABASE_URL` is supplied automatically by the Render PostgreSQL database in the Blueprint.
 - `ADMIN_SECRET_CODE`
 - `SECRET_KEY`
 - `JWT_SECRET_KEY`
 - `PUBLIC_APP_URL`
 - `FOOTBALL_DATA_API_TOKEN`
-- Twilio credentials when SMS reminders are enabled
+- `FOOTBALLDATA_IO_API_KEY`
 
 The Render build command installs Python packages, installs frontend packages, builds React, and starts Gunicorn. Flask serves `frontend/dist` so the app uses one deployed URL.
 
@@ -82,14 +82,6 @@ Participants log in using their mobile number only. Admins log in by entering th
 
 All datetimes are stored in UTC. Browser rendering uses the user's local timezone.
 
-## Scheduled Jobs
+## Match Sync
 
-APScheduler registers:
-
-- Daily upcoming match sync from football-data.org
-- Daily reminder SMS job for matches around 24 hours away
-- Match status refresh every 15 minutes
-- Prediction point awards every 20 minutes
-- Leaderboard refresh job every 30 minutes
-
-Set `SCHEDULER_ENABLED=false` for local sessions where background jobs are not desired.
+Football data sync is triggered by important pages and by the admin **Sync Matches** action. Database-backed throttling prevents repeated API calls when many users open the app at the same time.

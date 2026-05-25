@@ -10,7 +10,12 @@ import api from "../services/api";
 import { formatDateTime } from "../utils/datetime";
 
 export default function Dashboard() {
-  const { data, loading, error, refresh } = useApi(async () => (await api.get("/matches/dashboard")).data, []);
+  const today = new Date();
+  const clientDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const { data, loading, error, refresh } = useApi(
+    async () => (await api.get(`/matches/dashboard?tz_offset_minutes=${new Date().getTimezoneOffset()}&client_date=${clientDate}`)).data,
+    [],
+  );
   const [drafts, setDrafts] = useState({});
   const [toast, setToast] = useState("");
 
@@ -40,6 +45,7 @@ export default function Dashboard() {
   if (error) return <div className="glass rounded-2xl p-6">{error}</div>;
 
   const matches = data?.matches || [];
+  const awaitingResultMatches = data?.awaiting_result_matches || [];
 
   return (
     <div className="space-y-6">
@@ -53,7 +59,7 @@ export default function Dashboard() {
             {data?.schedule_date ? `Matches on ${new Date(`${data.schedule_date}T00:00:00`).toLocaleDateString(undefined, { dateStyle: "full" })}` : "No scheduled matches"}
           </h1>
           <p className="mt-2 text-white/60">
-            {matches.length ? "Showing the next available match day. Submit or edit each prediction until kickoff." : "Admin has not scheduled an upcoming match yet."}
+            {matches.length ? "Showing today's matches or the next available match day. Submit or edit each prediction until kickoff." : "Admin has not scheduled an upcoming match yet."}
           </p>
         </div>
       </div>
@@ -75,6 +81,14 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+
+      <AwaitingResults
+        matches={awaitingResultMatches}
+        predictions={data.predictions || {}}
+        drafts={drafts}
+        onDraft={updateDraft}
+        onSubmit={submit}
+      />
     </div>
   );
 }
@@ -95,9 +109,38 @@ function Announcements({ announcements }) {
   );
 }
 
+function AwaitingResults({ matches, predictions, drafts, onDraft, onSubmit }) {
+  if (!matches.length) return null;
+
+  return (
+    <section className="space-y-4 pt-4">
+      <div>
+        <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaBell /> Awaiting Result Update</p>
+        <h2 className="mt-2 text-2xl font-black md:text-3xl">Previous Matches Pending Result</h2>
+        <p className="mt-2 text-sm text-white/60">These matches have started, so answers are locked until the result is updated by admin or API.</p>
+      </div>
+      <div className="grid gap-6">
+        {matches.map((match, index) => (
+          <MatchPredictionCard
+            key={match.id}
+            index={index}
+            match={match}
+            prediction={predictions?.[match.id]}
+            draft={drafts[match.id] || {}}
+            onDraft={onDraft}
+            onSubmit={onSubmit}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, index }) {
   const selectedTeam = draft.predicted_team || prediction?.predicted_team || "";
   const selectedDrug = draft.favorite_drug ?? prediction?.favorite_drug ?? "";
+  const isLocked = new Date(match.match_datetime).getTime() <= Date.now();
+  const canEdit = !isLocked;
 
   return (
     <motion.section
@@ -115,7 +158,13 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
                 <h2 className="mt-2 text-2xl font-black md:text-4xl">{match.team1} vs {match.team2}</h2>
                 <p className="mt-2 text-white/65">{formatDateTime(match.match_datetime)}</p>
               </div>
-              {prediction && <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-black text-gold">Participated</span>}
+              <span className={`rounded-full border px-3 py-1 text-xs font-black ${
+                prediction
+                  ? "border-gold/30 bg-gold/10 text-gold"
+                  : "border-white/15 bg-white/5 text-white/55"
+              }`}>
+                {prediction ? "Participated" : "Not participated"}
+              </span>
             </div>
           </div>
           <div className="p-5 md:p-6">
@@ -125,6 +174,13 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
               <TeamLogo src={match.team2_logo} name={match.team2} />
             </div>
             <div className="mt-6">
+              {(match.venue_name || match.venue_location) && (
+                <div className="mb-3 text-center text-xs font-semibold text-white/55">
+                  {match.venue_name && <span><span className="text-gold">Stadium:</span> {match.venue_name}</span>}
+                  {match.venue_name && match.venue_location && <span className="px-2 text-white/30">|</span>}
+                  {match.venue_location && <span><span className="text-gold">Location:</span> {match.venue_location}</span>}
+                </div>
+              )}
               <CountdownTimer target={match.match_datetime} />
             </div>
           </div>
@@ -144,8 +200,13 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
                 <button
                   type="button"
                   key={name}
+                  disabled={!canEdit}
                   onClick={() => onDraft(match.id, "predicted_team", name)}
-                  className={`rounded-2xl border p-4 font-black ${selectedTeam === name ? "border-gold bg-gold text-black" : "border-white/15 bg-white/5"}`}
+                  className={`rounded-2xl border p-4 font-black transition ${
+                    selectedTeam === name
+                      ? "border-gold bg-gold text-black"
+                      : "border-white/15 bg-white/5"
+                  } ${canEdit ? "hover:border-gold/60" : "cursor-not-allowed opacity-70"}`}
                 >
                   {name}
                 </button>
@@ -155,10 +216,13 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
             <input
               className="input"
               value={selectedDrug}
+              disabled={!canEdit}
               onChange={(event) => onDraft(match.id, "favorite_drug", event.target.value)}
               placeholder="Enter favorite Hetero drug"
             />
-            <button onClick={() => onSubmit(match)} className="btn-primary w-full">{prediction ? "Update Prediction" : "Participate and Earn +50"}</button>
+            <button disabled={!canEdit} onClick={() => onSubmit(match)} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70">
+              {isLocked ? (prediction ? "Match Started - Answers Locked" : "Match Started - Not Eligible") : prediction ? "Update Prediction" : "Participate and Earn +50"}
+            </button>
           </div>
         </div>
       </div>

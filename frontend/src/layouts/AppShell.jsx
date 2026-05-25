@@ -1,7 +1,6 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useState } from "react";
-import { FiMenu, FiX, FiLogOut } from "react-icons/fi";
-import { useAuth } from "../context/AuthContext";
+import { FiMenu, FiX } from "react-icons/fi";
 
 const userLinks = [
   ["Game Dashboard", "/dashboard"],
@@ -21,15 +20,8 @@ const mrLinks = [["MR Dashboard", "/mr"]];
 
 export default function AppShell({ mode = "user" }) {
   const [open, setOpen] = useState(false);
-  const { logout } = useAuth();
-  const navigate = useNavigate();
   const links = mode === "admin" ? adminLinks : mode === "mr" ? mrLinks : userLinks;
   const home = mode === "admin" ? "/admin" : mode === "mr" ? "/mr" : "/dashboard";
-
-  const doLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <div className="min-h-screen bg-stadium field-lines">
@@ -47,7 +39,6 @@ export default function AppShell({ mode = "user" }) {
                 {label}
               </NavLink>
             ))}
-            <button onClick={doLogout} className="btn-ghost inline-flex items-center gap-2 text-sm"><FiLogOut /> Logout</button>
           </div>
         </div>
         {open && (
@@ -57,7 +48,6 @@ export default function AppShell({ mode = "user" }) {
                 {label}
               </NavLink>
             ))}
-            <button onClick={doLogout} className="btn-ghost flex w-full items-center gap-2"><FiLogOut /> Logout</button>
           </div>
         )}
       </nav>
