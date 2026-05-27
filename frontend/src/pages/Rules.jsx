@@ -1,7 +1,7 @@
 const rules = [
   ["Enrollment", "+100 points automatically after registration."],
   ["Participation", "+50 points for submitting a match prediction."],
-  ["Correct prediction", "+50 points when the selected team wins."],
+  ["Correct prediction", "+50 points when the selected team or Draw prediction matches the final result."],
   ["Edit window", "Predictions can be modified until match start time."],
   ["Wrong prediction", "No points are deducted."],
   ["Cancelled match", "Participation points are reverted if a match is cancelled."],

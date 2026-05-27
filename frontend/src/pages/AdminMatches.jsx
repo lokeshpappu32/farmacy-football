@@ -6,14 +6,16 @@ import api from "../services/api";
 import { formatDateTime } from "../utils/datetime";
 
 const empty = { team1_iso: "", team2_iso: "", match_datetime: "" };
+const perPage = 20;
 
 export default function AdminMatches() {
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState(empty);
   const [actions, setActions] = useState({});
   const [toast, setToast] = useState("");
   const [toastTone, setToastTone] = useState("gold");
   const [countries, setCountries] = useState([]);
-  const { data, loading, error, refresh } = useApi(async () => (await api.get("/admin/matches")).data, []);
+  const { data, loading, error, refresh } = useApi(async () => (await api.get(`/admin/matches?page=${page}&per_page=${perPage}`)).data, [page]);
 
   useEffect(() => {
     api.get("/countries")
@@ -88,6 +90,18 @@ export default function AdminMatches() {
       setToast(err.message);
     }
   };
+  const allMatches = data?.matches || [];
+  const hasServerPagination = Boolean(data?.pagination);
+  const localTotalPages = Math.max(Math.ceil(allMatches.length / perPage), 1);
+  const matchesMeta = data?.pagination || {
+    page,
+    per_page: perPage,
+    total: allMatches.length,
+    pages: localTotalPages,
+    has_prev: page > 1,
+    has_next: page < localTotalPages,
+  };
+  const visibleMatches = hasServerPagination ? allMatches : allMatches.slice((page - 1) * perPage, page * perPage);
   return (
     <div className="space-y-6">
       <Toast message={toast} tone={toastTone} onClose={() => setToast("")} />
@@ -103,64 +117,103 @@ export default function AdminMatches() {
       </form>
       <div className="glass rounded-3xl p-4">
         {loading ? <LoadingSkeleton rows={6} /> : error ? <div>{error}</div> : (
-          <div className="space-y-3">
-            {(data?.matches || []).map((match) => (
-              <div key={match.id} className="grid gap-3 rounded-2xl bg-white/10 p-4 md:grid-cols-[1fr_auto] md:items-center">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <CompactLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
-                    <div className="text-lg font-black">{match.team1} vs {match.team2}</div>
-                    <CompactLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
+          <>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-black">Matches</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
+                  {matchesMeta.total || 0} total
+                </span>
+                <Pagination meta={matchesMeta} onPage={setPage} />
+              </div>
+            </div>
+            <div className="scroll-panel max-h-[680px] space-y-3 overflow-y-auto pr-2">
+              {visibleMatches.map((match) => (
+                <div key={match.id} className="grid gap-3 rounded-2xl bg-white/10 p-4 md:grid-cols-[1fr_auto] md:items-center">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <CompactLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
+                      <div className="text-lg font-black">
+                        {match.team1} <span className="text-ember">VS</span> {match.team2}
+                      </div>
+                      <CompactLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
+                    </div>
+                    <div className="mt-1 grid gap-1 text-sm text-white/60">
+                      <span>UTC: {formatUtcDateTime(match.match_datetime)}</span>
+                      <span>Local: {formatDateTime(match.match_datetime)} - {match.result_label || match.status}</span>
+                    </div>
                   </div>
-                  <div className="mt-1 grid gap-1 text-sm text-white/60">
-                    <span>UTC: {formatUtcDateTime(match.match_datetime)}</span>
-                    <span>Local: {formatDateTime(match.match_datetime)} - {match.result_label || match.status}</span>
-                  </div>
-                </div>
-                {["completed", "cancelled"].includes(match.status) ? (
-                  <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-bold text-white/55">
-                    Result locked
-                  </div>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-[140px_180px_auto]">
-                    <select
-                      className="input"
-                      value={actions[match.id]?.action || "winner"}
-                      onChange={(event) => changeActionType(match, event.target.value)}
-                    >
-                      <option className="bg-black" value="winner">Winner</option>
-                      <option className="bg-black" value="draw">Draw</option>
-                      <option className="bg-black" value="reschedule">Reschedule</option>
-                      <option className="bg-black" value="cancel">Cancel</option>
-                    </select>
-                    {(actions[match.id]?.action || "winner") === "winner" && (
+                  {["completed", "cancelled"].includes(match.status) ? (
+                    <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-bold text-white/55">
+                      Result locked
+                    </div>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-[140px_180px_auto]">
                       <select
                         className="input"
-                        value={actions[match.id]?.winner_team || ""}
-                        onChange={(event) => updateAction(match.id, "winner_team", event.target.value)}
+                        value={actions[match.id]?.action || "winner"}
+                        onChange={(event) => changeActionType(match, event.target.value)}
                       >
-                        <option className="bg-black" value="">Select team</option>
-                        <option className="bg-black" value={match.team1}>{match.team1}</option>
-                        <option className="bg-black" value={match.team2}>{match.team2}</option>
+                        <option className="bg-black" value="winner">Winner</option>
+                        <option className="bg-black" value="draw">Draw</option>
+                        <option className="bg-black" value="reschedule">Reschedule</option>
+                        <option className="bg-black" value="cancel">Cancel</option>
                       </select>
-                    )}
-                    {(actions[match.id]?.action || "winner") === "reschedule" && (
-                      <input
-                        className="input"
-                        type="datetime-local"
-                        value={actions[match.id]?.match_datetime || ""}
-                        onChange={(event) => updateAction(match.id, "match_datetime", event.target.value)}
-                      />
-                    )}
-                    {["draw", "cancel"].includes(actions[match.id]?.action || "") && <div className="hidden sm:block" />}
-                    <button type="button" className="btn-primary whitespace-nowrap" onClick={() => applyAction(match)}>Update Match</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                      {(actions[match.id]?.action || "winner") === "winner" && (
+                        <select
+                          className="input"
+                          value={actions[match.id]?.winner_team || ""}
+                          onChange={(event) => updateAction(match.id, "winner_team", event.target.value)}
+                        >
+                          <option className="bg-black" value="">Select team</option>
+                          <option className="bg-black" value={match.team1}>{match.team1}</option>
+                          <option className="bg-black" value={match.team2}>{match.team2}</option>
+                        </select>
+                      )}
+                      {(actions[match.id]?.action || "winner") === "reschedule" && (
+                        <input
+                          className="input"
+                          type="datetime-local"
+                          value={actions[match.id]?.match_datetime || ""}
+                          onChange={(event) => updateAction(match.id, "match_datetime", event.target.value)}
+                        />
+                      )}
+                      {["draw", "cancel"].includes(actions[match.id]?.action || "") && <div className="hidden sm:block" />}
+                      <button type="button" className="btn-primary whitespace-nowrap" onClick={() => applyAction(match)}>Update Match</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {visibleMatches.length === 0 && <div className="rounded-2xl bg-white/10 p-5 text-white/55">No matches found.</div>}
+            </div>
+          </>
         )}
       </div>
+    </div>
+  );
+}
+
+function Pagination({ meta, onPage }) {
+  if (!meta) return null;
+  const currentPage = meta.page || 1;
+  const totalPages = Math.max(meta.pages || 1, 1);
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={!meta.has_prev}
+        onClick={() => onPage(currentPage - 1)}
+      >
+        Prev
+      </button>
+      <span className="min-w-12 text-center text-xs font-bold text-white/60">{currentPage}/{totalPages}</span>
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={!meta.has_next}
+        onClick={() => onPage(currentPage + 1)}
+      >
+        Next
+      </button>
     </div>
   );
 }

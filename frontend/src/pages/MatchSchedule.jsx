@@ -78,9 +78,8 @@ function ScheduleCard({ match, completed }) {
   return (
     <article className="rounded-2xl border border-white/10 bg-white/10 p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-xs font-bold uppercase tracking-widest text-gold">{completed ? "Result" : "Fixture"}</div>
-          <h3 className="mt-1 text-lg font-black">{match.team1} vs {match.team2}</h3>
           <div className="mt-1 text-sm text-white/60">{formatDateTime(match.match_datetime)}</div>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${match.status === "cancelled" ? "bg-ember/20 text-ember" : "bg-gold/10 text-gold"}`}>
@@ -88,10 +87,10 @@ function ScheduleCard({ match, completed }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <TeamLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
-        <div className="text-xl font-black text-ember">VS</div>
-        <TeamLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
+      <div className="mt-4 grid min-w-0 items-center gap-3 rounded-2xl bg-black/15 p-3 text-lg font-black sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <ScheduleTeam match={match} side="team1" />
+        <span className="text-center text-ember">VS</span>
+        <ScheduleTeam match={match} side="team2" right />
       </div>
 
       {(match.venue_name || match.venue_location) && (
@@ -103,6 +102,21 @@ function ScheduleCard({ match, completed }) {
         </div>
       )}
     </article>
+  );
+}
+
+function ScheduleTeam({ match, side, right = false }) {
+  const isTeam1 = side === "team1";
+  const name = isTeam1 ? match.team1 : match.team2;
+  const logo = isTeam1 ? match.team1_logo : match.team2_logo;
+  const fallback = isTeam1 ? match.team1_flag_url : match.team2_flag_url;
+
+  return (
+    <div className={`flex min-w-0 items-center gap-2 ${right ? "justify-end" : ""}`}>
+      {!right && <TeamLogo size="sm" showName={false} src={logo} fallbackSrc={fallback} name={name} />}
+      <span className={`min-w-0 break-words ${right ? "text-right" : ""}`}>{name}</span>
+      {right && <TeamLogo size="sm" showName={false} src={logo} fallbackSrc={fallback} name={name} />}
+    </div>
   );
 }
 

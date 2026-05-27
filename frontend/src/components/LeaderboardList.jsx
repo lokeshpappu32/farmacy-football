@@ -20,7 +20,7 @@ export default function LeaderboardList({ rows = [] }) {
             </div>
             <div>
               <div className="font-bold">{row.full_name}</div>
-              <div className="text-xs text-white/55">{row.country} {row.mr_id ? `- ${row.mr_id}` : ""}</div>
+              <div className="text-xs text-white/55">{row.country}{row.city ? ` - ${row.city}` : ""}</div>
             </div>
           </div>
           <div className="text-right">

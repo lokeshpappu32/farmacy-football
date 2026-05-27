@@ -14,7 +14,7 @@ const pointRules = [
 const rewards = [
   { points: "1,000", reward: "Hetero cap" },
   { points: "5,000", reward: "Water bottle" },
-  { points: "Top scorer", reward: "$200 gift reward" },
+  { points: "Top scorer", reward: "$200 gift reward within the country" },
 ];
 
 export default function Home() {

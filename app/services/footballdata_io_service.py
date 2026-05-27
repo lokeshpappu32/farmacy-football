@@ -5,8 +5,8 @@ import requests
 from flask import current_app
 
 from app.extensions import db
-from app.models import ApiCallLog, ApiSyncState, Match
-from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, queue_prediction_awards, reschedule_match
+from app.models import AdminLog, ApiCallLog, ApiSyncState, Match
+from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, reschedule_match
 from app.utils.time import as_utc
 
 PROVIDER = "footballdata.io"
@@ -73,11 +73,14 @@ def sync_if_allowed(sync_type, page, role=None, user_id=None):
         synced = 0
         extra_request_count = 0
         extra_usage_snapshots = []
+        sync_stats = {}
         for payload in payloads:
-            payload_synced, payload_extra_requests, payload_usage_snapshots = apply_payload(sync_type, payload)
+            payload_synced, payload_extra_requests, payload_usage_snapshots, payload_stats = apply_payload(sync_type, payload)
             synced += payload_synced
             extra_request_count += payload_extra_requests
             extra_usage_snapshots.extend(payload_usage_snapshots)
+            sync_stats = merge_sync_stats(sync_stats, payload_stats)
+        add_upcoming_sync_summary(sync_type, sync_stats)
         elapsed = int((perf_counter() - started) * 1000)
         state.last_synced_at = now
         state.locked_until = None
@@ -203,11 +206,12 @@ def call_footballdata(endpoint, extra_params=None):
 
 def apply_payload(sync_type, payload):
     if sync_type in {"usage", "health"}:
-        return 0, 0, []
+        return 0, 0, [], {}
     matches = extract_matches(payload)
     synced = 0
     extra_requests = 0
     usage_snapshots = []
+    stats = {}
     for item in matches:
         if not league_allowed(item):
             continue
@@ -217,9 +221,38 @@ def apply_payload(sync_type, payload):
             usage_snapshots.append(detail_usage)
             if detail_item:
                 item = detail_item
-        apply_api_match(item)
+        _, action = apply_api_match(item)
+        stats[action] = stats.get(action, 0) + 1
         synced += 1
-    return synced, extra_requests, usage_snapshots
+    return synced, extra_requests, usage_snapshots, stats
+
+
+def merge_sync_stats(current, incoming):
+    merged = dict(current or {})
+    for key, value in (incoming or {}).items():
+        merged[key] = merged.get(key, 0) + int(value or 0)
+    return merged
+
+
+def add_upcoming_sync_summary(sync_type, stats):
+    if sync_type != "upcoming" or not stats:
+        return
+    processed = sum(stats.values())
+    same_kickoff = stats.get("same_kickoff", 0)
+    created = stats.get("created", 0)
+    rescheduled = stats.get("rescheduled", 0)
+    updated = stats.get("updated", 0)
+    no_changes = created == 0 and rescheduled == 0 and updated == 0
+    details = (
+        f"Upcoming sync checked {processed} API matches. "
+        f"{same_kickoff} already existed with the same kickoff time. "
+        f"{created} new matches added. "
+        f"{rescheduled} rescheduled. "
+        f"{updated} updated."
+    )
+    if no_changes:
+        details += " No schedule changes."
+    db.session.add(AdminLog(admin_action="api_upcoming_sync_summary", details=details))
 
 
 def should_confirm_match(sync_type, item):
@@ -279,9 +312,14 @@ def configured_league_ids():
 def apply_api_match(item):
     api_match_id = str(item.get("match_id"))
     if not api_match_id:
-        return None
+        return None, "skipped"
 
     match = Match.query.filter_by(api_match_id=api_match_id).first()
+    is_new = match is None
+    had_same_kickoff = False
+    if match:
+        api_datetime_for_compare = parse_api_datetime(item)
+        had_same_kickoff = same_kickoff_time(match.match_datetime, api_datetime_for_compare)
     if not match:
         match = Match(api_match_id=api_match_id, team1="", team2="", match_datetime=datetime.now(timezone.utc))
         db.session.add(match)
@@ -305,7 +343,8 @@ def apply_api_match(item):
             match.match_datetime = api_datetime
             db.session.commit()
             cancel_match(match, source="api")
-        return match
+            return match, "cancelled"
+        return match, "same_kickoff" if had_same_kickoff else "updated"
 
     if api_status == "completed":
         match.match_datetime = api_datetime
@@ -314,26 +353,36 @@ def apply_api_match(item):
             if match.status != "completed" or match.winner_team != "Draw":
                 db.session.commit()
                 finalize_draw(match, source="api")
+                return match, "completed"
         elif winner:
             if match.status != "completed" or match.winner_team != winner:
                 db.session.commit()
                 manual_update_winner(match, winner, source="api")
-                queue_prediction_awards(match.id)
+                return match, "completed"
         else:
             match.status = "completed"
             db.session.commit()
-        return match
+            return match, "completed"
+        return match, "same_kickoff" if had_same_kickoff else "updated"
 
-    if match.match_datetime != api_datetime and match.status == "scheduled":
+    if is_new:
+        match.match_datetime = api_datetime
+        match.winner_team = None
+        match.status = api_status
+        db.session.add(match)
+        db.session.add(AdminLog(admin_action="api_create_match", details=f"Added API match {match.team1} vs {match.team2} on {api_datetime.isoformat()}"))
+        return match, "created"
+
+    if match.status == "scheduled" and not same_kickoff_time(match.match_datetime, api_datetime):
         db.session.commit()
         reschedule_match(match, api_datetime, source="api")
-        return match
+        return match, "rescheduled"
 
     match.match_datetime = api_datetime
     match.winner_team = None
     match.status = api_status
     db.session.add(match)
-    return match
+    return match, "same_kickoff" if had_same_kickoff else "updated"
 
 
 def parse_api_datetime(item):
@@ -343,6 +392,14 @@ def parse_api_datetime(item):
     if value:
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
     return datetime.now(timezone.utc)
+
+
+def same_kickoff_time(current_value, api_value):
+    current_utc = as_utc(current_value)
+    api_utc = as_utc(api_value)
+    if not current_utc or not api_utc:
+        return current_utc == api_utc
+    return int(current_utc.timestamp()) == int(api_utc.timestamp())
 
 
 def normalize_status(item, match_datetime):

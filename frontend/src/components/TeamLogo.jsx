@@ -114,9 +114,13 @@ function flagFromName(name) {
   return code ? `https://flagcdn.com/${code}.svg` : null;
 }
 
-export default function TeamLogo({ src, fallbackSrc, name }) {
+export default function TeamLogo({ src, fallbackSrc, name, compact = false, size = "default", showName = true }) {
   const resolvedFallback = fallbackSrc || flagFromName(name);
   const [currentSrc, setCurrentSrc] = useState(src);
+  const isSmall = size === "sm";
+  const logoSizeClass = isSmall ? "h-9 w-9 p-1" : compact ? "h-12 w-12 p-2" : "h-20 w-20 p-3";
+  const nameClass = isSmall || compact ? "text-xs" : "text-sm";
+  const initialsClass = isSmall ? "text-xs" : compact ? "text-sm" : "text-xl";
 
   useEffect(() => {
     if (src && !brokenImages.has(src)) {
@@ -128,7 +132,7 @@ export default function TeamLogo({ src, fallbackSrc, name }) {
 
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/15 bg-white p-3 shadow-glow">
+      <div className={`flex ${logoSizeClass} items-center justify-center rounded-full border border-white/15 bg-white shadow-glow`}>
         {currentSrc ? (
           <img
             src={currentSrc}
@@ -144,10 +148,10 @@ export default function TeamLogo({ src, fallbackSrc, name }) {
             }}
           />
         ) : (
-          <span className="text-xl font-black text-pitch">{name?.slice(0, 2)}</span>
+          <span className={`${initialsClass} font-black text-pitch`}>{name?.slice(0, 2)}</span>
         )}
       </div>
-      <span className="text-sm font-bold">{name}</span>
+      {showName && <span className={`${nameClass} font-bold leading-tight`}>{name}</span>}
     </div>
   );
 }

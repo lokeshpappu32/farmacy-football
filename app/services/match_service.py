@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from threading import Thread
 
 import requests
 from flask import current_app
@@ -108,31 +107,26 @@ def award_prediction_points(match_id=None):
     return awarded
 
 
-def queue_prediction_awards(match_id):
-    app = current_app._get_current_object()
-
-    def runner():
-        with app.app_context():
-            try:
-                awarded = award_prediction_points(match_id)
-                app.logger.info("Background award job completed for match %s. Awarded users: %s", match_id, awarded)
-            except Exception:
-                db.session.rollback()
-                app.logger.exception("Background award job failed for match %s", match_id)
-            finally:
-                db.session.remove()
-
-    Thread(target=runner, daemon=True, name=f"award-predictions-match-{match_id}").start()
+def close_predictions_for_completed_match(match):
+    awarded = 0
+    closed = 0
+    for prediction in Prediction.query.filter_by(match_id=match.id).all():
+        was_correct = prediction.is_correct is True
+        is_correct = prediction.predicted_team == match.winner_team
+        prediction.is_correct = is_correct
+        prediction.winner_points = WINNER_POINTS if is_correct else 0
+        if is_correct and not was_correct:
+            add_points(prediction.participant, WINNER_POINTS, "Correct prediction bonus", match_id=match.id)
+            awarded += 1
+        closed += 1
+    return closed, awarded
 
 
 def finalize_draw(match, source="manual"):
     match.winner_team = "Draw"
     match.status = "completed"
-    marked = 0
-    for prediction in Prediction.query.filter_by(match_id=match.id, is_correct=None).all():
-        prediction.is_correct = False
-        marked += 1
-    db.session.add(AdminLog(admin_action=f"{source}_draw_update", details=f"Match {match.id} marked as draw. {marked} predictions closed."))
+    marked, awarded = close_predictions_for_completed_match(match)
+    db.session.add(AdminLog(admin_action=f"{source}_draw_update", details=f"Match {match.id} marked as draw. {marked} predictions closed. {awarded} draw prediction bonuses awarded."))
     db.session.commit()
     return marked
 
@@ -168,5 +162,12 @@ def manual_update_winner(match, winner_team, source="manual"):
         raise ValueError("Winner must match one of the participating teams.")
     match.winner_team = winner_team
     match.status = "completed"
-    db.session.add(AdminLog(admin_action=f"{source}_winner_update", details=f"Match {match.id} winner set to {winner_team}"))
+    closed, awarded = close_predictions_for_completed_match(match)
+    db.session.add(
+        AdminLog(
+            admin_action=f"{source}_winner_update",
+            details=f"Match {match.id} winner set to {winner_team}. {closed} predictions closed. {awarded} winner bonuses awarded.",
+        )
+    )
     db.session.commit()
+    return closed, awarded

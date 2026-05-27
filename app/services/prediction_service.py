@@ -16,8 +16,8 @@ def submit_or_update_prediction(participant_id, match_id, predicted_team, favori
         raise ValidationError("Participant or match was not found.")
     if as_utc(match.match_datetime) <= datetime.now(timezone.utc):
         raise ValidationError("Predictions are closed for this match.")
-    if predicted_team not in {match.team1, match.team2}:
-        raise ValidationError("Predicted team must be one of the match teams.")
+    if predicted_team not in {match.team1, match.team2, "Draw"}:
+        raise ValidationError("Prediction must be one of the match teams or Draw.")
     if not favorite_drug or len(str(favorite_drug).strip()) < 2:
         raise ValidationError("Favorite drug is required.")
 

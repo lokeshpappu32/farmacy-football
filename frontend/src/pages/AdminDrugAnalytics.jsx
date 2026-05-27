@@ -28,6 +28,17 @@ export default function AdminDrugAnalytics() {
     const pending = answers.filter((answer) => answer.is_correct === null).length;
     return { topDrug, uniqueDrugs, uniqueUsers, pending };
   }, [data]);
+  const answers = data?.answers || [];
+  const exportAnswers = () => {
+    const csv = toCsv(answers);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "farmacy-drug-answers.csv";
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   if (loading) return <LoadingSkeleton rows={5} />;
   if (error) return <div className="glass rounded-2xl p-6">{error}</div>;
@@ -104,7 +115,10 @@ export default function AdminDrugAnalytics() {
               <h2 className="text-xl font-black">User Answers</h2>
               <p className="text-sm text-white/55">Participant-level answer details for Hetero product insight.</p>
             </div>
-            <span className="w-fit shrink-0 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">{(data?.answers || []).length} rows</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-fit shrink-0 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">{answers.length} rows</span>
+              <button className="btn-primary" onClick={exportAnswers}>Export CSV</button>
+            </div>
           </div>
           <div className="scroll-panel max-h-[560px] min-w-0 overflow-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[1080px] text-left text-sm">
@@ -124,7 +138,7 @@ export default function AdminDrugAnalytics() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.answers || []).map((answer) => (
+                {answers.map((answer) => (
                   <tr key={answer.id} className="border-t border-white/10">
                     <td className="p-3 font-bold">{answer.participant}</td>
                     <td className="p-3">{answer.email || "-"}</td>
@@ -149,4 +163,41 @@ export default function AdminDrugAnalytics() {
       </div>
     </div>
   );
+}
+
+function toCsv(answers) {
+  const header = [
+    "participant",
+    "email",
+    "country",
+    "city",
+    "mr_id",
+    "match",
+    "match_status",
+    "match_result",
+    "predicted_team",
+    "favorite_drug",
+    "result",
+    "submitted_at",
+  ];
+  const rows = answers.map((answer) => [
+    answer.participant,
+    answer.email || "",
+    answer.country,
+    answer.city || "",
+    answer.mr_id || "",
+    answer.match,
+    answer.match_status,
+    answer.match_result,
+    answer.predicted_team,
+    answer.favorite_drug,
+    answer.is_correct === null ? "Pending" : answer.is_correct ? "Correct" : "No bonus",
+    formatDateTime(answer.submitted_at),
+  ]);
+  return [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }

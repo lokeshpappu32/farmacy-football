@@ -4,10 +4,12 @@ from app.extensions import db
 from app.models import Match, Participant, PointsHistory, Prediction
 
 
-def leaderboard(country=None, limit=100):
+def leaderboard(country=None, city=None, limit=100):
     query = Participant.query
     if country:
         query = query.filter(Participant.country == country)
+    if city:
+        query = query.filter(Participant.city == city)
     users = query.order_by(Participant.total_points.desc(), Participant.created_at.asc()).limit(limit).all()
     return [{**user.to_dict(), "rank": index + 1} for index, user in enumerate(users)]
 

@@ -40,7 +40,7 @@ DEMO_PREDICTIONS = {
     ],
     "+919876543211": [
         ("Brazil", "Argentina", "Argentina", "Ivermectol"),
-        ("France", "Germany", "Germany", "CoviFor"),
+        ("France", "Germany", "Draw", "CoviFor"),
         ("India", "Vietnam", "Vietnam", "Tenvir"),
     ],
     "+919876543212": [
@@ -203,7 +203,7 @@ def seed_predictions_and_points():
             prediction.favorite_drug = favorite_drug
             prediction.participation_points = 0 if match.status == "cancelled" else PARTICIPATION_POINTS
             prediction.winner_points = 0
-            if match.status == "completed" and match.winner_team and match.winner_team != "Draw":
+            if match.status == "completed" and match.winner_team:
                 prediction.is_correct = predicted_team == match.winner_team
                 prediction.winner_points = WINNER_POINTS if prediction.is_correct else 0
             elif match.status in {"completed", "cancelled"}:

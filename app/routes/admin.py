@@ -8,7 +8,7 @@ from app.extensions import db
 from app.models import AdminLog, ApiCallLog, ApiSyncState, Country, Match, Participant, Prediction
 from app.services.analytics_service import admin_analytics, leaderboard
 from app.services.footballdata_io_service import maybe_sync_football_data
-from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, queue_prediction_awards, reschedule_match, sync_matches_from_api
+from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, reschedule_match, sync_matches_from_api
 from app.utils.serialization import utc_iso
 from app.utils.validators import ValidationError, clean_email, clean_mobile, parse_utc_datetime, require_fields
 
@@ -19,13 +19,18 @@ admin_bp = Blueprint("admin", __name__)
 @admin_required
 def dashboard():
     maybe_sync_football_data("admin_dashboard", role="admin", user_id="admin", sync_types=["upcoming", "live", "results", "usage", "health"])
-    logs = AdminLog.query.order_by(AdminLog.created_at.desc()).limit(20).all()
-    api_logs = ApiCallLog.query.order_by(ApiCallLog.created_at.desc()).limit(20).all()
+    admin_log_page = positive_int(request.args.get("admin_log_page"), 1)
+    api_log_page = positive_int(request.args.get("api_log_page"), 1)
+    per_page = min(positive_int(request.args.get("per_page"), 10), 50)
+    logs_page = AdminLog.query.order_by(AdminLog.created_at.desc()).paginate(page=admin_log_page, per_page=per_page, error_out=False)
+    api_logs_page = ApiCallLog.query.order_by(ApiCallLog.created_at.desc()).paginate(page=api_log_page, per_page=per_page, error_out=False)
     sync_states = ApiSyncState.query.order_by(ApiSyncState.sync_type.asc()).all()
     return {
         **admin_analytics(),
-        "logs": [log.to_dict() for log in logs],
-        "api_logs": [log.to_dict() for log in api_logs],
+        "logs": [log.to_dict() for log in logs_page.items],
+        "logs_pagination": pagination_payload(logs_page),
+        "api_logs": [log.to_dict() for log in api_logs_page.items],
+        "api_logs_pagination": pagination_payload(api_logs_page),
         "api_sync_states": [
             {
                 "sync_type": state.sync_type,
@@ -37,6 +42,25 @@ def dashboard():
             }
             for state in sync_states
         ],
+    }
+
+
+def positive_int(value, fallback):
+    try:
+        parsed = int(value)
+        return parsed if parsed > 0 else fallback
+    except (TypeError, ValueError):
+        return fallback
+
+
+def pagination_payload(page):
+    return {
+        "page": page.page,
+        "per_page": page.per_page,
+        "total": page.total,
+        "pages": page.pages,
+        "has_prev": page.has_prev,
+        "has_next": page.has_next,
     }
 
 
@@ -55,7 +79,13 @@ def sync_matches():
 @admin_required
 def admin_matches():
     maybe_sync_football_data("admin_matches", role="admin", user_id="admin", sync_types=["upcoming", "live", "results"])
-    return {"matches": [match.to_dict() for match in Match.query.order_by(Match.match_datetime.desc()).all()]}
+    page = positive_int(request.args.get("page"), 1)
+    per_page = min(positive_int(request.args.get("per_page"), 20), 100)
+    matches_page = Match.query.order_by(Match.match_datetime.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    return {
+        "matches": [match.to_dict() for match in matches_page.items],
+        "pagination": pagination_payload(matches_page),
+    }
 
 
 @admin_bp.post("/matches")
@@ -124,9 +154,8 @@ def update_winner(match_id):
     if not match:
         return {"message": "Match not found."}, 404
     try:
-        manual_update_winner(match, str((request.get_json(silent=True) or {}).get("winner_team", "")).strip())
-        queue_prediction_awards(match.id)
-        return {"match": match.to_dict(), "awards_queued": True, "message": "Winner updated. Points are being awarded in the background."}
+        closed, awarded = manual_update_winner(match, str((request.get_json(silent=True) or {}).get("winner_team", "")).strip())
+        return {"match": match.to_dict(), "closed": closed, "awarded": awarded, "message": "Winner updated and points awarded."}
     except ValueError as exc:
         return {"message": str(exc)}, 400
 
@@ -143,9 +172,8 @@ def update_match_action(match_id):
         return {"message": "This match is already finalized and cannot be updated."}, 400
     try:
         if action == "winner":
-            manual_update_winner(match, str(payload.get("winner_team") or "").strip())
-            queue_prediction_awards(match.id)
-            return {"match": match.to_dict(), "awards_queued": True, "message": "Winner updated. Points are being awarded in the background."}
+            closed, awarded = manual_update_winner(match, str(payload.get("winner_team") or "").strip())
+            return {"match": match.to_dict(), "closed": closed, "awarded": awarded, "message": "Winner updated and points awarded."}
         if action == "draw":
             closed = finalize_draw(match)
             return {"match": match.to_dict(), "closed": closed, "message": "Match marked as draw."}
@@ -175,19 +203,57 @@ def delete_match(match_id):
 @admin_bp.get("/users")
 @admin_required
 def users():
-    q = request.args.get("q", "").strip()
-    query = Participant.query
-    if q:
-        query = query.filter(
-            db.or_(
-                Participant.full_name.ilike(f"%{q}%"),
-                Participant.mobile_number.ilike(f"%{q}%"),
-                Participant.country.ilike(f"%{q}%"),
-                Participant.city.ilike(f"%{q}%"),
-                Participant.mr_id.ilike(f"%{q}%"),
-            )
-        )
-    return {"users": [user.to_dict(include_private=True) for user in query.order_by(Participant.created_at.desc()).limit(500).all()]}
+    q, country, city, mr_id = user_filter_values()
+    query = filtered_users_query()
+
+    city_options_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
+    mr_options_query = db.session.query(Participant.mr_id).filter(Participant.mr_id.isnot(None), Participant.mr_id != "")
+    if country:
+        city_options_query = city_options_query.filter(Participant.country == country)
+        mr_options_query = mr_options_query.filter(Participant.country == country)
+    if city:
+        mr_options_query = mr_options_query.filter(Participant.city == city)
+
+    return {
+        "filters": {"q": q, "country": country, "city": city, "mr_id": mr_id},
+        "countries": [
+            row[0]
+            for row in db.session.query(Participant.country)
+            .filter(Participant.country.isnot(None), Participant.country != "")
+            .distinct()
+            .order_by(Participant.country)
+            .all()
+        ],
+        "cities": [row[0] for row in city_options_query.distinct().order_by(Participant.city).all()],
+        "mr_ids": [row[0] for row in mr_options_query.distinct().order_by(Participant.mr_id).all()],
+        "users": [user.to_dict(include_private=True) for user in query.order_by(Participant.created_at.desc()).limit(500).all()],
+    }
+
+
+@admin_bp.get("/users/options")
+@admin_required
+def user_filter_options():
+    country = request.args.get("country", "").strip()
+    city = request.args.get("city", "").strip()
+    city_options_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
+    mr_options_query = db.session.query(Participant.mr_id).filter(Participant.mr_id.isnot(None), Participant.mr_id != "")
+    if country:
+        city_options_query = city_options_query.filter(Participant.country == country)
+        mr_options_query = mr_options_query.filter(Participant.country == country)
+    if city:
+        mr_options_query = mr_options_query.filter(Participant.city == city)
+    return {
+        "countries": [
+            row[0]
+            for row in db.session.query(Participant.country)
+            .filter(Participant.country.isnot(None), Participant.country != "")
+            .distinct()
+            .order_by(Participant.country)
+            .all()
+        ],
+        "cities": [row[0] for row in city_options_query.distinct().order_by(Participant.city).all()],
+        "mr_ids": [row[0] for row in mr_options_query.distinct().order_by(Participant.mr_id).all()],
+    }
 
 
 @admin_bp.put("/users/<int:user_id>")
@@ -299,12 +365,45 @@ def drug_analytics():
 @admin_bp.get("/export/users.csv")
 @admin_required
 def export_users():
+    query = filtered_users_query()
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["id", "full_name", "mobile_number", "email", "country", "city", "mr_id", "total_points", "created_at"])
-    for user in Participant.query.order_by(Participant.created_at.desc()).all():
+    for user in query.order_by(Participant.created_at.desc()).all():
         writer.writerow([user.id, user.full_name, user.mobile_number, user.email, user.country, user.city, user.mr_id, user.total_points, user.created_at])
     return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=farmacy-users.csv"})
+
+
+def user_filter_values():
+    return (
+        request.args.get("q", "").strip(),
+        request.args.get("country", "").strip(),
+        request.args.get("city", "").strip(),
+        request.args.get("mr_id", "").strip(),
+    )
+
+
+def filtered_users_query():
+    q, country, city, mr_id = user_filter_values()
+    query = Participant.query
+    if q:
+        query = query.filter(
+            db.or_(
+                Participant.full_name.ilike(f"%{q}%"),
+                Participant.mobile_number.ilike(f"%{q}%"),
+                Participant.email.ilike(f"%{q}%"),
+                Participant.country.ilike(f"%{q}%"),
+                Participant.city.ilike(f"%{q}%"),
+                Participant.mr_id.ilike(f"%{q}%"),
+            )
+        )
+    if country:
+        query = query.filter(Participant.country == country)
+    if city:
+        query = query.filter(Participant.city == city)
+    if mr_id:
+        query = query.filter(Participant.mr_id == mr_id)
+    return query
 
 
 @admin_bp.get("/predictions")

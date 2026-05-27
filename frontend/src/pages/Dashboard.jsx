@@ -194,9 +194,9 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
             </div>
           )}
           <div className="space-y-4">
-            <label className="block text-sm font-bold">Which team will win?</label>
-            <div className="grid grid-cols-2 gap-3">
-              {[match.team1, match.team2].map((name) => (
+            <label className="block text-sm font-bold">Which team will win, or will it be a draw?</label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[match.team1, "Draw", match.team2].map((name) => (
                 <button
                   type="button"
                   key={name}
