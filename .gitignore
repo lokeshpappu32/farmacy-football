@@ -1,36 +1,61 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.Python
+.python-version
 .env
 .env.*
 !.env.example
 .venv/
 venv/
 env/
+ENV/
 instance/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.hypothesis/
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
+*.egg-info/
+build/
+dist/
 
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 frontend/.env
 frontend/.env.*
+frontend/coverage/
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 
 *.log
+.logs/
 .backup/
 docs/
 scripts/generate_client_ppt.py
 *.db
 *.sqlite
 *.sqlite3
+
+# Azure/local deployment artifacts. Keep startup.sh, render.yaml, and docs tracked.
+*.publishsettings
+*.pubxml
+*.zip
+*.tar.gz
+.deployment
+.azure/
+.azure-pipelines/
+
+# Local tool caches
+.cache/
+.parcel-cache/
+.turbo/
 
 .DS_Store
 Thumbs.db

@@ -68,6 +68,55 @@ Use `render.yaml` to create one Python web service and one Render PostgreSQL dat
 
 The Render build command installs Python packages, installs frontend packages, builds React, and starts Gunicorn. Flask serves `frontend/dist` so the app uses one deployed URL.
 
+## Azure App Service Deployment
+
+Use an Azure **Linux** App Service with Python 3.11 and an Azure Database for PostgreSQL flexible server.
+
+For full test/live setup instructions, see [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md).
+
+Enable Azure build automation and use this post-build command:
+
+```bash
+SCM_DO_BUILD_DURING_DEPLOYMENT=1
+POST_BUILD_COMMAND=bash scripts/azure_post_build.sh
+```
+
+Startup command:
+
+```bash
+bash startup.sh
+```
+
+`startup.sh` runs `python scripts/init_db.py` before Gunicorn starts. That script creates the database tables and inserts/updates the real country list from `scripts/country_seed.py`. Do **not** run `python scripts/seed.py` in production unless you intentionally want demo participants, demo matches, demo predictions, and demo admin logs.
+
+Recommended Azure application settings:
+
+- `DATABASE_URL`: Azure PostgreSQL connection string, for example `postgresql://USER:PASSWORD@HOST.postgres.database.azure.com:5432/farmacy_football?sslmode=require`
+- `ADMIN_SECRET_CODE`: your private admin login code
+- `SECRET_KEY`: a long random secret
+- `JWT_SECRET_KEY`: another long random secret
+- `PUBLIC_APP_URL`: your Azure app URL, for example `https://your-app-name.azurewebsites.net`
+- `CORS_ORIGINS`: same Azure app URL
+- `RATELIMIT_STORAGE_URI`: `memory://`
+- `SCM_DO_BUILD_DURING_DEPLOYMENT`: `1`
+- `POST_BUILD_COMMAND`: `bash scripts/azure_post_build.sh`
+- `FOOTBALLDATA_IO_API_KEY`: your football API key
+- `FOOTBALLDATA_IO_BASE_URL`: `https://footballdata.io/api/v1`
+- `FOOTBALLDATA_IO_LEAGUE_IDS`: `50`
+- `FOOTBALLDATA_IO_SEASON_ID`: `618`
+- `FOOTBALLDATA_IO_LANG`: `en`
+- `FOOTBALLDATA_IO_SYNC_ENABLED`: `true`
+
+If you deploy from your local machine as a ZIP/package, build the frontend first so `frontend/dist` is included:
+
+```bash
+pip install -r requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+```
+
 ## Authentication
 
 Participants log in using their mobile number only. Admins log in by entering the `ADMIN_SECRET_CODE` value on the same login screen.
