@@ -38,6 +38,7 @@ frontend/pnpm-debug.log*
 .logs/
 .backup/
 docs/
+AZURE_DEPLOYMENT.md
 scripts/generate_client_ppt.py
 *.db
 *.sqlite
