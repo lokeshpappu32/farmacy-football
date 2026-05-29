@@ -1,0 +1,121 @@
+trigger:
+  branches:
+    include:
+      - develop
+      - main
+
+pr:
+  branches:
+    include:
+      - develop
+      - main
+
+variables:
+  pythonVersion: '3.11'
+  azureServiceConnection: 'HLRD-AZURE-SERVICE-CONNECTION'
+  testWebAppName: 'HLRD-WEBAPP01'
+  liveWebAppName: 'HLRD-WEBAPP02'
+  packageName: 'farmacy-football.zip'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Build
+    displayName: Build Flask + React App
+    jobs:
+      - job: BuildPackage
+        displayName: Build and Package
+        steps:
+          - task: UsePythonVersion@0
+            displayName: Use Python $(pythonVersion)
+            inputs:
+              versionSpec: '$(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            displayName: Install Python Dependencies
+
+          - script: |
+              bash scripts/azure_post_build.sh
+            displayName: Build React Frontend
+
+          - task: CopyFiles@2
+            displayName: Copy Deployment Files
+            inputs:
+              SourceFolder: '$(Build.SourcesDirectory)'
+              TargetFolder: '$(Build.ArtifactStagingDirectory)/app'
+              Contents: |
+                **/*
+                !.git/**
+                !.venv/**
+                !.backup/**
+                !__pycache__/**
+                !app/**/__pycache__/**
+                !frontend/node_modules/**
+                !frontend/src/**
+                !docs/**
+                !instance/**
+                !*.pyc
+
+          - task: ArchiveFiles@2
+            displayName: Create Deployment Zip
+            inputs:
+              rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/app'
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: '$(Build.ArtifactStagingDirectory)/$(packageName)'
+              replaceExistingArchive: true
+
+          - publish: '$(Build.ArtifactStagingDirectory)/$(packageName)'
+            displayName: Publish Build Artifact
+            artifact: drop
+
+  - stage: Deploy_Test
+    displayName: Deploy to Test Web App
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DeployTest
+        displayName: Deploy Develop to Test
+        environment: farmacy-football-test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+
+                - task: AzureWebApp@1
+                  displayName: Deploy to $(testWebAppName)
+                  inputs:
+                    azureSubscription: '$(azureServiceConnection)'
+                    appType: webAppLinux
+                    appName: '$(testWebAppName)'
+                    package: '$(Pipeline.Workspace)/drop/$(packageName)'
+                    startupCommand: 'bash startup.sh'
+
+  - stage: Deploy_Live
+    displayName: Deploy to Live Web App
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployLive
+        displayName: Deploy Main to Live
+        environment: farmacy-football-live
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+
+                - task: AzureWebApp@1
+                  displayName: Deploy to $(liveWebAppName)
+                  inputs:
+                    azureSubscription: '$(azureServiceConnection)'
+                    appType: webAppLinux
+                    appName: '$(liveWebAppName)'
+                    package: '$(Pipeline.Workspace)/drop/$(packageName)'
+                    startupCommand: 'bash startup.sh'

@@ -11,3 +11,4 @@ gunicorn==22.0.0
 marshmallow==3.21.3
 email-validator==2.2.0
 cryptography==42.0.8
+pyodbc==5.2.0
