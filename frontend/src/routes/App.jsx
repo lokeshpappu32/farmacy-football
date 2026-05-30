@@ -13,7 +13,6 @@ import Home from "../pages/Home";
 import Leaderboard from "../pages/Leaderboard";
 import Login from "../pages/Login";
 import MatchSchedule from "../pages/MatchSchedule";
-import MrDashboard from "../pages/MrDashboard";
 import Performance from "../pages/Performance";
 import Rules from "../pages/Rules";
 import ProtectedRoute from "./ProtectedRoute";
@@ -42,11 +41,6 @@ export default function App() {
             <Route path="/admin/leaderboard" element={<AdminLeaderboard />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/drug-analytics" element={<AdminDrugAnalytics />} />
-          </Route>
-        </Route>
-        <Route element={<ProtectedRoute role="mr" />}>
-          <Route element={<AppShell mode="mr" />}>
-            <Route path="/mr" element={<MrDashboard />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

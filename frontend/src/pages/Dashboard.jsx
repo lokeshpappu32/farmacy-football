@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FaBell, FaCalendarDay, FaStar } from "react-icons/fa";
+import { FaBell, FaFutbol, FaStar } from "react-icons/fa";
 import CountdownTimer from "../components/CountdownTimer";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import TeamLogo from "../components/TeamLogo";
@@ -51,21 +51,19 @@ export default function Dashboard() {
     <div className="space-y-6">
       <Toast message={toast} onClose={() => setToast("")} tone={toast.includes("saved") ? "gold" : "error"} />
       <Announcements announcements={data?.announcements || []} />
-
-      <div className="flex flex-col justify-between gap-2 md:flex-row md:items-end">
+{/* 
+      <div className="flex flex-col justify-between gap-2 text-center md:items-center">
         <div>
-          <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaCalendarDay /> Game Dashboard</p>
-          <h1 className="mt-2 text-3xl font-black md:text-5xl">
-            {data?.schedule_date ? `Matches on ${new Date(`${data.schedule_date}T00:00:00`).toLocaleDateString(undefined, { dateStyle: "full" })}` : "No scheduled matches"}
-          </h1>
-          <p className="mt-2 text-white/60">
-            {matches.length ? "Showing today's matches or the next available match day. Submit or edit each prediction until kickoff." : "Admin has not scheduled an upcoming match yet."}
+          <p className="flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaFutbol /> Game Dashboard</p>
+          <h1 className="mt-2 text-3xl font-black md:text-5xl">Matches Opening Within 48 Hours</h1>
+          <p className="mt-2 text-white/80">
+            {matches.length ? "Submit or edit your prediction until kickoff." : "No match is open for participation in the next 48 hours."}
           </p>
         </div>
-      </div>
+      </div> */}
 
       {matches.length === 0 ? (
-        <div className="glass rounded-3xl p-8 text-center text-xl font-bold">No upcoming matches are available yet.</div>
+        <div className="glass rounded-3xl p-8 text-center text-xl font-bold">No matches are open yet.</div>
       ) : (
         <div className="grid gap-6">
           {matches.map((match, index) => (
@@ -147,54 +145,50 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="glass overflow-hidden rounded-3xl"
+      className="mx-auto w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/20 bg-black/15 shadow-[0_22px_70px_rgba(0,0,0,0.35)] backdrop-blur-sm"
     >
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
-        <div>
-          <div className="bg-gradient-to-r from-ember/30 to-gold/20 p-5 md:p-6">
-            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gold">Scheduled fixture</p>
-                <h2 className="mt-2 text-2xl font-black md:text-4xl">{match.team1} vs {match.team2}</h2>
-                <p className="mt-2 text-white/65">{formatDateTime(match.match_datetime)}</p>
-              </div>
-              <span className={`rounded-full border px-3 py-1 text-xs font-black ${
-                prediction
-                  ? "border-gold/30 bg-gold/10 text-gold"
-                  : "border-white/15 bg-white/5 text-white/55"
-              }`}>
-                {prediction ? "Participated" : "Not participated"}
-              </span>
-            </div>
+      <div className="bg-white px-6 py-4 text-center text-slate-700">
+        <div className="grid items-center gap-4 md:grid-cols-[180px_1fr_180px]">
+          <div className="hidden items-center justify-center text-7xl text-slate-900 md:flex"><FaFutbol /></div>
+          <div>
+            <p className="text-lg font-black text-slate-600">{formatDateTime(match.match_datetime)}</p>
+            <h2 className="mt-1 text-3xl font-black text-red-600 md:text-4xl">{match.team1} <span className="text-slate-600">VS</span> {match.team2}</h2>
+            <span className={`mt-3 inline-flex rounded-full border px-8 py-1 text-base font-black ${
+              prediction ? "border-red-500 bg-red-50 text-red-600" : "border-red-500 text-red-600"
+            }`}>
+              {prediction ? "Participated" : "Participate Now"}
+            </span>
           </div>
-          <div className="p-5 md:p-6">
-            <div className="flex items-center justify-around gap-4">
-              <TeamLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
-              <div className="text-3xl font-black text-ember">VS</div>
-              <TeamLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
-            </div>
-            <div className="mt-6">
-              {(match.venue_name || match.venue_location) && (
-                <div className="mb-3 text-center text-xs font-semibold text-white/55">
-                  {match.venue_name && <span><span className="text-gold">Stadium:</span> {match.venue_name}</span>}
-                  {match.venue_name && match.venue_location && <span className="px-2 text-white/30">|</span>}
-                  {match.venue_location && <span><span className="text-gold">Location:</span> {match.venue_location}</span>}
-                </div>
-              )}
-              <CountdownTimer target={match.match_datetime} />
-            </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 p-6 lg:grid-cols-[1.15fr_.85fr]">
+        <div>
+          <div className="flex items-center justify-around gap-4">
+            <TeamLogo src={match.team1_logo} fallbackSrc={match.team1_flag_url} name={match.team1} />
+            <div className="text-3xl font-black">VS</div>
+            <TeamLogo src={match.team2_logo} fallbackSrc={match.team2_flag_url} name={match.team2} />
+          </div>
+          <div className="mx-auto mt-8 max-w-lg">
+            {(match.venue_name || match.venue_location) && (
+              <div className="mb-3 text-center text-xs font-semibold text-white/70">
+                {match.venue_name && <span><span className="text-gold">Stadium:</span> {match.venue_name}</span>}
+                {match.venue_name && match.venue_location && <span className="px-2 text-white/30">|</span>}
+                {match.venue_location && <span><span className="text-gold">Location:</span> {match.venue_location}</span>}
+              </div>
+            )}
+            <CountdownTimer target={match.match_datetime} />
           </div>
         </div>
 
-        <div className="border-t border-white/10 p-5 lg:border-l lg:border-t-0 md:p-6">
-          <div className="mb-5 flex items-center gap-2 text-gold"><FaStar /> <span className="font-black">Prediction questions</span></div>
+        <div className="p-2 md:p-4">
+          <div className="mb-5 flex items-center gap-2 text-white"><FaStar /> <span className="font-black">My favourite Team</span></div>
           {prediction && (
-            <div className="mb-4 rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm">
+            <div className="mb-4 rounded-xl border border-white/20 bg-white/10 p-3 text-sm">
               Current pick: <b>{prediction.predicted_team}</b> with <b>{prediction.favorite_drug}</b>
             </div>
           )}
           <div className="space-y-4">
-            <label className="block text-sm font-bold">Which team will win, or will it be a draw?</label>
             <div className="grid gap-3 sm:grid-cols-3">
               {[match.team1, "Draw", match.team2].map((name) => (
                 <button
@@ -202,26 +196,26 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
                   key={name}
                   disabled={!canEdit}
                   onClick={() => onDraft(match.id, "predicted_team", name)}
-                  className={`rounded-2xl border p-4 font-black transition ${
+                  className={`rounded-full border p-4 text-xl font-black transition ${
                     selectedTeam === name
-                      ? "border-gold bg-gold text-black"
-                      : "border-white/15 bg-white/5"
+                      ? "border-white bg-white/85 text-black"
+                      : "border-white/20 bg-white/45 text-white"
                   } ${canEdit ? "hover:border-gold/60" : "cursor-not-allowed opacity-70"}`}
                 >
                   {name}
                 </button>
               ))}
             </div>
-            <label className="block text-sm font-bold">Favorite Hetero drug</label>
+            <label className="block text-lg font-black">My favourite HETERO Brand Today</label>
             <input
-              className="input"
+              className="enroll-input rounded-full"
               value={selectedDrug}
               disabled={!canEdit}
               onChange={(event) => onDraft(match.id, "favorite_drug", event.target.value)}
-              placeholder="Enter favorite Hetero drug"
+              placeholder="Xxxxxxxxxxxxxxx"
             />
-            <button disabled={!canEdit} onClick={() => onSubmit(match)} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70">
-              {isLocked ? (prediction ? "Match Started - Answers Locked" : "Match Started - Not Eligible") : prediction ? "Update Prediction" : "Participate and Earn +50"}
+            <button disabled={!canEdit} onClick={() => onSubmit(match)} className="w-full rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-8 py-4 text-3xl font-black text-white disabled:cursor-not-allowed disabled:opacity-70">
+              {isLocked ? (prediction ? "Locked" : "Not Eligible") : prediction ? "Update" : "Participate"}
             </button>
           </div>
         </div>

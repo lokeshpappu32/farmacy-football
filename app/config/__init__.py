@@ -1,8 +1,35 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import quote_plus
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+
+def database_uri():
+    raw_uri = os.getenv("DATABASE_URL", "").strip()
+    azure_sql_connection = (
+        os.getenv("AZURE_SQL_CONNECTION_STRING", "").strip()
+        or os.getenv("SQLAZURECONNSTR_DEFAULT", "").strip()
+        or os.getenv("SQLCONNSTR_DEFAULT", "").strip()
+    )
+
+    if not raw_uri and azure_sql_connection:
+        return f"mssql+pyodbc:///?odbc_connect={quote_plus(azure_sql_connection)}"
+
+    if not raw_uri:
+        raw_uri = "postgresql://postgres:password@localhost:5432/farmacy_football"
+
+    if raw_uri.lower().startswith(("driver=", "server=")):
+        return f"mssql+pyodbc:///?odbc_connect={quote_plus(raw_uri)}"
+
+    if raw_uri.startswith("postgres://"):
+        return raw_uri.replace("postgres://", "postgresql://", 1)
+
+    if raw_uri.startswith("mssql://"):
+        return raw_uri.replace("mssql://", "mssql+pyodbc://", 1)
+
+    return raw_uri
 
 
 class Config:
@@ -11,12 +38,7 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     ADMIN_SECRET_CODE = os.getenv("ADMIN_SECRET_CODE", "ADMIN-FARMACY-CHANGE-ME")
 
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:password@localhost:5432/farmacy_football",
-    )
-    if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,

@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+from sqlalchemy import inspect, text
+
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app import create_app
@@ -30,10 +32,29 @@ def seed_countries():
         )
 
 
+def ensure_schema_columns():
+    inspector = inspect(db.engine)
+    if not inspector.has_table("participants"):
+        return
+    participant_columns = {column["name"] for column in inspector.get_columns("participants")}
+    additions = {
+        "participant_type": "VARCHAR(40) NOT NULL DEFAULT 'farmacist'",
+        "pharmacy_name": "VARCHAR(180) NULL",
+        "medical_rep_name": "VARCHAR(160) NULL",
+        "medical_rep_country_code": "VARCHAR(8) NULL",
+        "medical_rep_mobile_number": "VARCHAR(32) NULL",
+    }
+    with db.engine.begin() as connection:
+        for column, definition in additions.items():
+            if column not in participant_columns:
+                connection.execute(text(f"ALTER TABLE participants ADD COLUMN {column} {definition}"))
+
+
 app = create_app()
 
 with app.app_context():
     db.create_all()
+    ensure_schema_columns()
     seed_countries()
     db.session.commit()
     print("Database initialized.")

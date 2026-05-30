@@ -4,12 +4,12 @@ from app.extensions import db
 from app.models import Match, Participant, PointsHistory, Prediction
 
 
-def leaderboard(country=None, city=None, limit=100):
+def leaderboard(country=None, medical_rep_name=None, limit=100):
     query = Participant.query
     if country:
         query = query.filter(Participant.country == country)
-    if city:
-        query = query.filter(Participant.city == city)
+    if medical_rep_name:
+        query = query.filter(Participant.medical_rep_name == medical_rep_name)
     users = query.order_by(Participant.total_points.desc(), Participant.created_at.asc()).limit(limit).all()
     return [{**user.to_dict(), "rank": index + 1} for index, user in enumerate(users)]
 
@@ -58,22 +58,22 @@ def grouped_participant_analytics(group_field, limit=100, base_query=None):
     return sorted(rows, key=lambda row: (row["participants"], row["points"]), reverse=True)[:limit]
 
 
-def top_mr_analytics(limit=10):
+def top_medical_rep_analytics(limit=10):
     rows = []
-    mr_ids = [
+    rep_names = [
         row[0]
-        for row in db.session.query(Participant.mr_id)
-        .filter(Participant.mr_id.isnot(None), Participant.mr_id != "")
+        for row in db.session.query(Participant.medical_rep_name)
+        .filter(Participant.medical_rep_name.isnot(None), Participant.medical_rep_name != "")
         .distinct()
         .all()
     ]
-    for mr_id in mr_ids:
-        users = Participant.query.filter_by(mr_id=mr_id).all()
+    for rep_name in rep_names:
+        users = Participant.query.filter_by(medical_rep_name=rep_name).all()
         participant_ids = [user.id for user in users]
         summary = prediction_summary_for_participants(participant_ids)
         rows.append(
             {
-                "mr_id": mr_id,
+                "medical_rep_name": rep_name,
                 "participants": len(users),
                 "points": int(sum(user.total_points or 0 for user in users)),
                 "countries": len({user.country for user in users if user.country}),
@@ -152,7 +152,7 @@ def admin_analytics():
         "pending_predictions": prediction_summary["pending"],
         "country_analytics": grouped_participant_analytics("country"),
         "city_analytics": grouped_participant_analytics("city"),
-        "mr_analytics": top_mr_analytics(),
+        "mr_analytics": top_medical_rep_analytics(),
         "top_drugs": favorite_drug_summary(),
         "insights": {
             "top_country": top_country,

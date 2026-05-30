@@ -39,6 +39,8 @@ frontend/pnpm-debug.log*
 .backup/
 docs/
 AZURE_DEPLOYMENT.md
+Azure_End_to_End_Deployment_Guide.md
+External_Git_Azure_End_to_End_Deployment_Guide.md
 scripts/generate_client_ppt.py
 *.db
 *.sqlite
@@ -52,6 +54,13 @@ scripts/generate_client_ppt.py
 .deployment
 .azure/
 .azure-pipelines/
+
+# Source image drops copied into frontend/public for deployment.
+/Hetero_New_Logo.png
+/soccer field.webp
+/Designer.otf
+/Terms & condition.docx
+/frontend/Neuropolitical Rg.otf
 
 # Local tool caches
 .cache/

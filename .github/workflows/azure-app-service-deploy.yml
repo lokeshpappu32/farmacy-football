@@ -1,0 +1,104 @@
+name: Deploy Farmacy Football to Azure App Service
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  TEST_WEBAPP_NAME: HLRD-WEBAPP01
+  LIVE_WEBAPP_NAME: HLRD-WEBAPP02
+
+jobs:
+  build:
+    name: Build Flask + React package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build React frontend
+        run: bash scripts/azure_post_build.sh
+
+      - name: Create deployment package
+        run: |
+          mkdir -p package
+          rsync -av \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude ".venv/" \
+            --exclude ".backup/" \
+            --exclude "__pycache__/" \
+            --exclude "app/**/__pycache__/" \
+            --exclude "frontend/node_modules/" \
+            --exclude "frontend/src/" \
+            --exclude "docs/" \
+            --exclude "instance/" \
+            --exclude "*.pyc" \
+            ./ package/
+          cd package
+          zip -r ../farmacy-football.zip .
+
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v4
+        with:
+          name: farmacy-football
+          path: farmacy-football.zip
+
+  deploy-test:
+    name: Deploy develop to test
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: test
+      url: https://HLRD-WEBAPP01.azurewebsites.net
+
+    steps:
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: farmacy-football
+
+      - name: Deploy to Azure App Service test
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.TEST_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_TEST }}
+          package: farmacy-football.zip
+
+  deploy-live:
+    name: Deploy main to live
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: live
+      url: https://HLRD-WEBAPP02.azurewebsites.net
+
+    steps:
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: farmacy-football
+
+      - name: Deploy to Azure App Service live
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.LIVE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_LIVE }}
+          package: farmacy-football.zip

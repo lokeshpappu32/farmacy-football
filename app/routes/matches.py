@@ -36,7 +36,7 @@ def dashboard_matches():
     maybe_sync_football_data("game_dashboard", role="participant" if identity else "public", user_id=identity, sync_types=["upcoming", "live", "results"])
     tz_offset_minutes = request.args.get("tz_offset_minutes", type=int)
     now = datetime.now(timezone.utc)
-    today = client_today(tz_offset_minutes)
+    visible_until = now + timedelta(hours=48)
     open_matches = [
         match
         for match in Match.query.filter(Match.status.in_(["scheduled", "live"])).order_by(Match.match_datetime.asc()).all()
@@ -44,15 +44,14 @@ def dashboard_matches():
     upcoming_matches = [
         match
         for match in open_matches
-        if local_match_date(match, tz_offset_minutes) >= today and as_utc(match.match_datetime) > now
+        if now < as_utc(match.match_datetime) <= visible_until
     ]
     awaiting_matches = [
         match
         for match in open_matches
         if as_utc(match.match_datetime) <= now
     ]
-    target_date = local_match_date(upcoming_matches[0], tz_offset_minutes) if upcoming_matches else None
-    matches = [match for match in upcoming_matches if local_match_date(match, tz_offset_minutes) == target_date] if target_date else []
+    matches = upcoming_matches
 
     predictions = {}
     prediction_match_ids = [match.id for match in [*matches, *awaiting_matches]]
@@ -67,7 +66,7 @@ def dashboard_matches():
         "matches": [match.to_dict() for match in matches],
         "awaiting_result_matches": [match.to_dict() for match in awaiting_matches],
         "predictions": predictions,
-        "schedule_date": target_date.isoformat() if target_date else None,
+        "window_hours": 48,
         "announcements": recent_match_announcements(participant_id),
     }
 

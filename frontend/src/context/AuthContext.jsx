@@ -4,17 +4,18 @@ import api from "../services/api";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem("ff_token"));
-  const [role, setRole] = useState(localStorage.getItem("ff_role"));
+  const storedRole = localStorage.getItem("ff_role");
+  const storedToken = localStorage.getItem("ff_token");
+  const hasSupportedRole = ["admin", "participant"].includes(storedRole);
+  if (storedRole && !hasSupportedRole) {
+    ["ff_token", "ff_role", "ff_participant", "ff_mr"].forEach((key) => localStorage.removeItem(key));
+  }
+  const [token, setToken] = useState(hasSupportedRole ? storedToken : null);
+  const [role, setRole] = useState(hasSupportedRole ? storedRole : null);
   const [participant, setParticipant] = useState(() => {
     const raw = localStorage.getItem("ff_participant");
     return raw ? JSON.parse(raw) : null;
   });
-  const [mr, setMr] = useState(() => {
-    const raw = localStorage.getItem("ff_mr");
-    return raw ? JSON.parse(raw) : null;
-  });
-
   const persist = (data) => {
     localStorage.setItem("ff_token", data.token);
     localStorage.setItem("ff_role", data.role);
@@ -23,10 +24,6 @@ export function AuthProvider({ children }) {
     if (data.participant) {
       localStorage.setItem("ff_participant", JSON.stringify(data.participant));
       setParticipant(data.participant);
-    }
-    if (data.mr) {
-      localStorage.setItem("ff_mr", JSON.stringify(data.mr));
-      setMr(data.mr);
     }
   };
 
@@ -44,16 +41,15 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    ["ff_token", "ff_role", "ff_participant", "ff_mr"].forEach((key) => localStorage.removeItem(key));
+    ["ff_token", "ff_role", "ff_participant"].forEach((key) => localStorage.removeItem(key));
     setToken(null);
     setRole(null);
     setParticipant(null);
-    setMr(null);
   };
 
   const value = useMemo(
-    () => ({ token, role, participant, mr, isAuthed: Boolean(token), isAdmin: role === "admin", isMr: role === "mr", login, enroll, logout }),
-    [token, role, participant, mr],
+    () => ({ token, role, participant, isAuthed: Boolean(token), isAdmin: role === "admin", login, enroll, logout }),
+    [token, role, participant],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

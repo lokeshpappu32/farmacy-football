@@ -22,27 +22,29 @@ def performance():
 def public_leaderboard():
     maybe_sync_football_data("leaderboard", role="public", sync_types=["results"])
     country = request.args.get("country", "").strip()
-    city = request.args.get("city", "").strip()
+    medical_rep_name = request.args.get("medical_rep_name", "").strip()
     return {
-        "filters": {"country": country, "city": city},
-        **leaderboard_options_payload(country),
-        "leaderboard": leaderboard(country=country, city=city, limit=100),
+        "filters": {"country": country, "medical_rep_name": medical_rep_name},
+        **leaderboard_options_payload(),
+        "leaderboard": leaderboard(country=country, medical_rep_name=medical_rep_name, limit=100),
     }
 
 
 @public_bp.get("/leaderboard/options")
 def leaderboard_options():
-    country = request.args.get("country", "").strip()
-    return leaderboard_options_payload(country)
+    return leaderboard_options_payload()
 
 
-def leaderboard_options_payload(country=""):
-    cities_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
-    if country:
-        cities_query = cities_query.filter(Participant.country == country)
+def leaderboard_options_payload():
+    rep_names = {
+        row[0]
+        for row in db.session.query(Participant.medical_rep_name)
+        .filter(Participant.medical_rep_name.isnot(None), Participant.medical_rep_name != "")
+        .all()
+    }
     return {
         "countries": [row.name for row in Country.query.filter_by(is_active=True).order_by(Country.name.asc()).all()],
-        "cities": [row[0] for row in cities_query.distinct().order_by(Participant.city).all()],
+        "medical_rep_names": sorted(rep_names),
     }
 
 

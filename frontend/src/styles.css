@@ -3,6 +3,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Designer";
+  src: url("/fonts/Designer.otf") format("opentype");
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -18,9 +26,9 @@ body {
 
 .glass {
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+  background: linear-gradient(145deg, rgba(0,0,0,.22), rgba(255,255,255,.04));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(8px);
 }
 
 .field-lines {
@@ -44,6 +52,24 @@ body {
 .input:focus {
   border-color: rgba(248,201,69,.75);
   box-shadow: 0 0 0 3px rgba(248,201,69,.14);
+}
+
+.enroll-input {
+  width: 100%;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .25);
+  background: rgba(239, 244, 236, .9);
+  padding: 8px 14px;
+  color: #050608;
+  outline: none;
+  font-size: 1rem;
+}
+
+.enroll-input:focus,
+.enroll-input:focus-within {
+  border-color: rgba(255, 255, 255, .85);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .12);
 }
 
 .btn-primary {
@@ -72,6 +98,153 @@ body {
 .btn-ghost:hover {
   background: rgba(255,255,255,.12);
   transform: translateY(-1px);
+}
+
+.home-hero-logo {
+  --hero-red: #f31822;
+  width: min(92vw, 620px);
+  font-family: "Designer", "Neuropolitical", "Arial Black", Impact, ui-sans-serif, system-ui, sans-serif;
+  font-style: italic;
+  font-weight: 900;
+  text-align: center;
+}
+
+.home-football-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.home-football-title {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  color: var(--hero-red);
+  font-size: clamp(3.1rem, 10vw, 5.35rem);
+  line-height: .8;
+  text-shadow: 2px 3px 0 rgba(0, 0, 0, .42);
+  transform: skewX(-10deg) scaleX(1.14);
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+.home-ball-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: .82em;
+  height: .82em;
+  margin: 0 -.02em 0 -.04em;
+}
+
+.home-ball {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: .82em;
+  height: .82em;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  font-size: .75em;
+  line-height: 1;
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, .4);
+  outline: 2px solid #fff;
+}
+
+.home-with {
+  margin-top: .16em;
+  color: #fff;
+  font-size: clamp(1.35rem, 4.1vw, 2rem);
+  line-height: .86;
+  text-shadow: 2px 3px 0 rgba(0, 0, 0, .48);
+  transform: skewX(-10deg) scaleX(1.12);
+}
+
+.home-farmacists {
+  margin-top: .1em;
+  color: var(--hero-red);
+  font-size: clamp(2.45rem, 8vw, 3.2rem);
+  line-height: .82;
+  text-shadow: 2px 3px 0 rgba(0, 0, 0, .42);
+  transform: skewX(-10deg) scaleX(1.1);
+}
+
+.home-hero-logo-compact {
+  width: 250px;
+}
+
+.home-hero-logo-compact .home-football-title {
+  font-size: 2.55rem;
+  text-shadow: 1px 2px 0 rgba(0, 0, 0, .42);
+}
+
+.home-hero-logo-compact .home-with {
+  font-size: 1rem;
+  text-shadow: 1px 2px 0 rgba(0, 0, 0, .42);
+}
+
+.home-hero-logo-compact .home-farmacists {
+  font-size: 1.72rem;
+  text-shadow: 1px 2px 0 rgba(0, 0, 0, .42);
+}
+
+.home-role-option {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: .75rem;
+}
+
+.home-role-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-role-mark {
+  position: relative;
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 3px solid #fff;
+  background: rgba(255, 255, 255, .12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .45);
+}
+
+.home-role-radio:checked + .home-role-mark {
+  border-color: #fff;
+  background: #fff;
+}
+
+.home-role-radio:checked + .home-role-mark::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #050608;
+}
+
+@media (max-width: 520px) {
+  .home-hero-logo {
+    width: min(96vw, 390px);
+  }
+
+  .home-football-title {
+    transform: skewX(-9deg) scaleX(.98);
+  }
+
+  .home-farmacists,
+  .home-with {
+    transform: skewX(-9deg) scaleX(.98);
+  }
 }
 
 .scroll-panel {

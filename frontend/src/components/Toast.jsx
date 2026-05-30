@@ -17,8 +17,12 @@ export default function Toast({ message, tone = "gold", onClose }) {
             <span className="min-w-0 flex-1">{message}</span>
             <button
               type="button"
-              className="rounded-full p-1 text-white/70 transition hover:bg-white/10 hover:text-white"
-              onClick={onClose}
+              className="relative z-10 rounded-full bg-black/20 p-1 text-white/80 transition hover:bg-white/20 hover:text-white"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onClose?.();
+              }}
               aria-label="Close message"
             >
               <FiX />
