@@ -3,7 +3,7 @@ name: Deploy Farmacy Football to Azure App Service
 on:
   push:
     branches:
-      - develop
+      - dev
       - main
   workflow_dispatch:
 
@@ -63,7 +63,7 @@ jobs:
     name: Deploy develop to test
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/dev'
     environment:
       name: test
       url: https://HLRD-WEBAPP01.azurewebsites.net
