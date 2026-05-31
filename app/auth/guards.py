@@ -27,6 +27,18 @@ def admin_required(fn):
     return wrapper
 
 
+def super_admin_required(fn):
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        claims = get_jwt()
+        if claims.get("role") != "super_admin":
+            return {"message": "Super admin access required."}, 403
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
 def mr_required(fn):
     @wraps(fn)
     @jwt_required()

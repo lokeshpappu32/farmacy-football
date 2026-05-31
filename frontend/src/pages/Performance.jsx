@@ -18,13 +18,13 @@ export default function Performance() {
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Total Points" value={data.total_points} icon={FaTrophy} />
         <StatCard label="Global Rank" value={data.rank || "-"} icon={FaMedal} />
-        <StatCard label="Accuracy" value={`${data.accuracy}%`} icon={FaBullseye} />
         <StatCard label="Participated" value={data.matches_participated} icon={FaChartLine} />
+        <StatCard label="Accuracy" value={`${data.accuracy}%`} icon={FaBullseye} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="glass rounded-3xl p-6">
           <h2 className="mb-4 text-xl font-black">Match History</h2>
-          <div className="space-y-3">
+          <div className="scroll-panel max-h-[460px] space-y-3 overflow-y-auto pr-2">
             {data.predictions.map((prediction) => (
               <div key={prediction.id} className="rounded-2xl bg-white/10 p-4">
                 <div className="font-bold">{prediction.match.team1} vs {prediction.match.team2}</div>
@@ -36,7 +36,7 @@ export default function Performance() {
         </section>
         <section className="glass rounded-3xl p-6">
           <h2 className="mb-4 text-xl font-black">Points History</h2>
-          <div className="space-y-3">
+          <div className="scroll-panel max-h-[460px] space-y-3 overflow-y-auto pr-2">
             {data.points_history.map((item) => (
               <div key={item.id} className="flex items-center justify-between rounded-2xl bg-white/10 p-4">
                 <div>

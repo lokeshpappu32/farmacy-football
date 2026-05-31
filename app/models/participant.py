@@ -9,7 +9,7 @@ class Participant(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(160), nullable=False)
-    participant_type = db.Column(db.String(40), nullable=False, default="farmacist", index=True)
+    participant_type = db.Column(db.String(40), nullable=False, default="farmacy_owner", index=True)
     pharmacy_name = db.Column(db.String(180), nullable=True)
     country_code = db.Column(db.String(8), nullable=True)
     mobile_number = db.Column(db.String(32), nullable=False, unique=True, index=True)

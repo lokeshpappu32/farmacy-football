@@ -1,17 +1,118 @@
 from sqlalchemy import case, func
 
 from app.extensions import db
-from app.models import Match, Participant, PointsHistory, Prediction
+from app.models import Country, Match, Participant, PointsHistory, Prediction
+
+PHARMACY_TYPES = {"farmacist", "farmacy_owner", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"}
+HETERO_TYPES = {"medical_rep", "hetero_rep", "hetero_staff", "hetero_representative", "representative", "rep", "mr"}
 
 
-def leaderboard(country=None, medical_rep_name=None, limit=100):
-    query = Participant.query
+def country_flag_map():
+    return {country.name: country.flag_url for country in Country.query.filter(Country.flag_url.isnot(None)).all()}
+
+
+def leaderboard(country=None, medical_rep_name=None, medical_rep_mobile_number=None, limit=100):
+    query = Participant.query.filter(Participant.participant_type.in_(PHARMACY_TYPES))
     if country:
         query = query.filter(Participant.country == country)
-    if medical_rep_name:
+    if medical_rep_mobile_number:
+        query = query.filter(Participant.medical_rep_mobile_number == medical_rep_mobile_number)
+    elif medical_rep_name:
         query = query.filter(Participant.medical_rep_name == medical_rep_name)
     users = query.order_by(Participant.total_points.desc(), Participant.created_at.asc()).limit(limit).all()
-    return [{**user.to_dict(), "rank": index + 1} for index, user in enumerate(users)]
+    flags = country_flag_map()
+    return [
+        {**user.to_dict(), "country_flag_url": flags.get(user.country), "rank": index + 1}
+        for index, user in enumerate(users)
+    ]
+
+
+def mr_participation_rankings(country=None, limit=500):
+    reps_query = Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES))
+    if country:
+        reps_query = reps_query.filter(Participant.country == country)
+    reps = reps_query.order_by(Participant.country.asc(), Participant.full_name.asc()).all()
+    rows = []
+    for rep in reps:
+        pharmacists = Participant.query.filter(
+            Participant.participant_type.in_(PHARMACY_TYPES),
+            Participant.medical_rep_mobile_number == rep.mobile_number,
+        ).all()
+        pharmacist_ids = [user.id for user in pharmacists]
+        participations = (
+            Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count()
+            if pharmacist_ids
+            else 0
+        )
+        rows.append(
+            {
+                "id": rep.id,
+                "full_name": rep.full_name,
+                "mobile_number": rep.mobile_number,
+                "country": rep.country,
+                "country_flag_url": country_flag_map().get(rep.country),
+                "enrollments": len(pharmacists),
+                "participations": participations,
+                "avg_participations_per_farmacist": round(participations / max(len(pharmacists), 1), 1),
+            }
+        )
+    ranked = sorted(rows, key=lambda row: (row["participations"], row["enrollments"], row["full_name"]), reverse=True)
+    return [{**row, "rank": index + 1} for index, row in enumerate(ranked[:limit])]
+
+
+def mr_country_rankings():
+    rows = []
+    countries = [
+        row[0]
+        for row in db.session.query(Participant.country)
+        .filter(Participant.participant_type.in_(HETERO_TYPES), Participant.country.isnot(None), Participant.country != "")
+        .distinct()
+        .all()
+    ]
+    flags = country_flag_map()
+    for country in countries:
+        country_mrs = mr_participation_rankings(country=country, limit=100000)
+        enrolled_mrs = len(country_mrs)
+        total_participations = sum(row["participations"] for row in country_mrs)
+        rows.append(
+            {
+                "country": country,
+                "country_flag_url": flags.get(country),
+                "mrs": enrolled_mrs,
+                "participations": total_participations,
+                "score": round(total_participations / max(enrolled_mrs, 1), 1),
+            }
+        )
+    ranked = sorted(rows, key=lambda row: (row["score"], row["participations"], row["country"]), reverse=True)
+    return [{**row, "rank": index + 1} for index, row in enumerate(ranked)]
+
+
+def mr_dashboard_analytics(country=None):
+    rankings = mr_participation_rankings(country=country)
+    all_rankings = mr_participation_rankings()
+    total_enrollments = Participant.query.filter(Participant.participant_type.in_(PHARMACY_TYPES)).count()
+    pharmacist_ids = [row[0] for row in db.session.query(Participant.id).filter(Participant.participant_type.in_(PHARMACY_TYPES)).all()]
+    total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
+    countries = [
+        row[0]
+        for row in db.session.query(Participant.country)
+        .filter(Participant.participant_type.in_(HETERO_TYPES), Participant.country.isnot(None), Participant.country != "")
+        .distinct()
+        .order_by(Participant.country.asc())
+        .all()
+    ]
+    return {
+        "summary": {
+            "total_enrollments": total_enrollments,
+            "total_participations": total_participations,
+            "total_mrs": Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES)).count(),
+            "active_mrs": sum(1 for row in all_rankings if row["participations"] > 0),
+        },
+        "filters": {"country": country or ""},
+        "countries": countries,
+        "mr_rankings": rankings,
+        "country_rankings": mr_country_rankings(),
+    }
 
 
 def prediction_summary_for_participants(participant_ids):

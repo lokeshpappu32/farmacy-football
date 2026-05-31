@@ -149,7 +149,9 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
     >
       <div className="bg-white px-6 py-4 text-center text-slate-700">
         <div className="grid items-center gap-4 md:grid-cols-[180px_1fr_180px]">
-          <div className="hidden items-center justify-center text-7xl text-slate-900 md:flex"><FaFutbol /></div>
+          <div className="hidden items-center justify-center md:flex">
+            <img src="/images/football-a.png" alt="" className="h-24 w-24 object-contain" />
+          </div>
           <div>
             <p className="text-lg font-black text-slate-600">{formatDateTime(match.match_datetime)}</p>
             <h2 className="mt-1 text-3xl font-black text-red-600 md:text-4xl">{match.team1} <span className="text-slate-600">VS</span> {match.team2}</h2>
@@ -182,27 +184,32 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
         </div>
 
         <div className="p-2 md:p-4">
-          <div className="mb-5 flex items-center gap-2 text-white"><FaStar /> <span className="font-black">My favourite Team</span></div>
+          <div className="mb-5 flex items-center gap-2 text-white"><FaStar /> <span className="font-black">My favourite Team Today</span></div>
           {prediction && (
             <div className="mb-4 rounded-xl border border-white/20 bg-white/10 p-3 text-sm">
               Current pick: <b>{prediction.predicted_team}</b> with <b>{prediction.favorite_drug}</b>
             </div>
           )}
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-3">
               {[match.team1, "Draw", match.team2].map((name) => (
                 <button
                   type="button"
                   key={name}
                   disabled={!canEdit}
                   onClick={() => onDraft(match.id, "predicted_team", name)}
-                  className={`rounded-full border p-4 text-xl font-black transition ${
+                  className={`match-choice-btn border ${
                     selectedTeam === name
                       ? "border-white bg-white/85 text-black"
                       : "border-white/20 bg-white/45 text-white"
                   } ${canEdit ? "hover:border-gold/60" : "cursor-not-allowed opacity-70"}`}
                 >
-                  {name}
+                  <span
+                    className="match-choice-text"
+                    style={{ fontSize: `clamp(0.68rem, ${Math.max(0.82, Math.min(1.12, 7 / String(name).length))}vw, 1.08rem)` }}
+                  >
+                    {name}
+                  </span>
                 </button>
               ))}
             </div>

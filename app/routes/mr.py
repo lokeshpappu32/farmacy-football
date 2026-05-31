@@ -1,65 +1,28 @@
-from flask import Blueprint
-from flask_jwt_extended import get_jwt_identity
+from flask import Blueprint, request
 
-from app.auth.guards import mr_required
-from app.models import Participant, Prediction
-from app.services.analytics_service import favorite_drug_summary, grouped_participant_analytics, leaderboard
+from app.auth.guards import admin_required
+from app.services.analytics_service import mr_dashboard_analytics, mr_participation_rankings
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 mr_bp = Blueprint("mr", __name__)
 
 
-@mr_bp.get("/dashboard")
-@mr_required
-def mr_dashboard():
-    mr_id = str(get_jwt_identity()).upper()
-    maybe_sync_football_data("mr_dashboard", role="mr", user_id=mr_id, sync_types=["results"])
-    users = Participant.query.filter_by(mr_id=mr_id).order_by(Participant.total_points.desc(), Participant.created_at.asc()).all()
-    user_ids = [user.id for user in users]
-    predictions = Prediction.query.filter(Prediction.participant_id.in_(user_ids)).all() if user_ids else []
+@mr_bp.get("/performance")
+@admin_required
+def mr_performance():
+    maybe_sync_football_data("mr_dashboard", role="admin", user_id="mr_admin", sync_types=["results"])
+    country = request.args.get("country", "").strip()
+    return mr_dashboard_analytics(country=country)
 
-    correct = sum(1 for prediction in predictions if prediction.is_correct is True)
-    wrong = sum(1 for prediction in predictions if prediction.is_correct is False)
-    pending = sum(1 for prediction in predictions if prediction.is_correct is None)
-    total_points = sum(user.total_points or 0 for user in users)
-    global_ranks = {row["id"]: row["rank"] for row in leaderboard(limit=100000)}
-    base_query = Participant.query.filter_by(mr_id=mr_id)
 
-    prediction_map = {}
-    for prediction in predictions:
-        stats = prediction_map.setdefault(prediction.participant_id, {"predictions": 0, "correct": 0, "wrong": 0, "pending": 0})
-        stats["predictions"] += 1
-        if prediction.is_correct is True:
-            stats["correct"] += 1
-        elif prediction.is_correct is False:
-            stats["wrong"] += 1
-        else:
-            stats["pending"] += 1
-
+@mr_bp.get("/standing")
+@admin_required
+def mr_standing():
+    maybe_sync_football_data("mr_dashboard", role="admin", user_id="mr_admin", sync_types=["results"])
+    country = request.args.get("country", "").strip()
+    data = mr_dashboard_analytics(country=country)
     return {
-        "mr_id": mr_id,
-        "summary": {
-            "participants": len(users),
-            "total_points": total_points,
-            "predictions": len(predictions),
-            "correct_predictions": correct,
-            "wrong_predictions": wrong,
-            "pending_predictions": pending,
-            "accuracy": round((correct / max(correct + wrong, 1)) * 100, 1),
-            "participation_rate": round((len({prediction.participant_id for prediction in predictions}) / max(len(users), 1)) * 100, 1),
-            "countries": len({user.country for user in users if user.country}),
-            "cities": len({user.city for user in users if user.city}),
-        },
-        "country_analytics": grouped_participant_analytics("country", base_query=base_query),
-        "city_analytics": grouped_participant_analytics("city", base_query=base_query),
-        "top_drugs": favorite_drug_summary(participant_ids=user_ids),
-        "leaderboard": [
-            {
-                **user.to_dict(include_private=True),
-                "rank": index + 1,
-                "global_rank": global_ranks.get(user.id),
-                **prediction_map.get(user.id, {"predictions": 0, "correct": 0, "wrong": 0, "pending": 0}),
-            }
-            for index, user in enumerate(users)
-        ],
+        "filters": data["filters"],
+        "countries": data["countries"],
+        "mr_rankings": data["mr_rankings"],
     }

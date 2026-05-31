@@ -118,9 +118,10 @@ export default function TeamLogo({ src, fallbackSrc, name, compact = false, size
   const resolvedFallback = fallbackSrc || flagFromName(name);
   const [currentSrc, setCurrentSrc] = useState(src);
   const isSmall = size === "sm";
-  const logoSizeClass = isSmall ? "h-9 w-9 p-1" : compact ? "h-12 w-12 p-2" : "h-20 w-20 p-3";
+  const logoSizeClass = isSmall ? "h-9 w-9" : compact ? "h-12 w-12" : "h-20 w-20";
   const nameClass = isSmall || compact ? "text-xs" : "text-sm";
   const initialsClass = isSmall ? "text-xs" : compact ? "text-sm" : "text-xl";
+  const isFlag = currentSrc && (currentSrc === resolvedFallback || currentSrc.includes("flagcdn.com"));
 
   useEffect(() => {
     if (src && !brokenImages.has(src)) {
@@ -132,12 +133,12 @@ export default function TeamLogo({ src, fallbackSrc, name, compact = false, size
 
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <div className={`flex ${logoSizeClass} items-center justify-center rounded-full border border-white/15 bg-white shadow-glow`}>
+      <div className={`flex ${logoSizeClass} items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white shadow-glow ${isFlag ? "p-0" : isSmall ? "p-1" : compact ? "p-2" : "p-3"}`}>
         {currentSrc ? (
           <img
             src={currentSrc}
             alt={name}
-            className="max-h-full max-w-full"
+            className={isFlag ? "h-full w-full rounded-full object-cover" : "max-h-full max-w-full object-contain"}
             onError={() => {
               brokenImages.add(currentSrc);
               if (resolvedFallback && currentSrc !== resolvedFallback && !brokenImages.has(resolvedFallback)) {

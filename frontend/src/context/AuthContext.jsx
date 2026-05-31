@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const storedRole = localStorage.getItem("ff_role");
   const storedToken = localStorage.getItem("ff_token");
-  const hasSupportedRole = ["admin", "participant"].includes(storedRole);
+  const hasSupportedRole = ["admin", "super_admin", "participant"].includes(storedRole);
   if (storedRole && !hasSupportedRole) {
     ["ff_token", "ff_role", "ff_participant", "ff_mr"].forEach((key) => localStorage.removeItem(key));
   }
@@ -34,6 +34,12 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const userLogin = async (payload) => {
+    const { data } = await api.post("/participant-login", payload);
+    persist(data);
+    return data;
+  };
+
   const enroll = async (payload) => {
     const { data } = await api.post("/enroll", payload);
     persist(data);
@@ -48,7 +54,7 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ token, role, participant, isAuthed: Boolean(token), isAdmin: role === "admin", login, enroll, logout }),
+    () => ({ token, role, participant, isAuthed: Boolean(token), isAdmin: role === "admin", login, userLogin, enroll, logout }),
     [token, role, participant],
   );
 

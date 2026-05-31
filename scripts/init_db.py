@@ -38,7 +38,7 @@ def ensure_schema_columns():
         return
     participant_columns = {column["name"] for column in inspector.get_columns("participants")}
     additions = {
-        "participant_type": "VARCHAR(40) NOT NULL DEFAULT 'farmacist'",
+        "participant_type": "VARCHAR(40) NOT NULL DEFAULT 'farmacy_owner'",
         "pharmacy_name": "VARCHAR(180) NULL",
         "medical_rep_name": "VARCHAR(160) NULL",
         "medical_rep_country_code": "VARCHAR(8) NULL",
