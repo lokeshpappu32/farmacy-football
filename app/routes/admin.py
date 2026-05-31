@@ -3,7 +3,7 @@ from io import StringIO
 
 from flask import Blueprint, Response, current_app, request
 
-from app.auth.guards import admin_required
+from app.auth.guards import super_admin_required
 from app.extensions import db
 from app.models import AdminLog, ApiCallLog, ApiSyncState, Country, Match, Participant, Prediction
 from app.services.analytics_service import admin_analytics, leaderboard
@@ -16,7 +16,7 @@ admin_bp = Blueprint("admin", __name__)
 
 
 @admin_bp.get("/dashboard")
-@admin_required
+@super_admin_required
 def dashboard():
     maybe_sync_football_data("admin_dashboard", role="admin", user_id="admin", sync_types=["upcoming", "live", "results", "usage", "health"])
     admin_log_page = positive_int(request.args.get("admin_log_page"), 1)
@@ -65,7 +65,7 @@ def pagination_payload(page):
 
 
 @admin_bp.post("/sync-matches")
-@admin_required
+@super_admin_required
 def sync_matches():
     if current_app.config.get("FOOTBALLDATA_IO_SYNC_ENABLED"):
         return maybe_sync_football_data("admin_matches", role="admin", user_id="admin", sync_types=["upcoming", "live", "results", "usage", "health"])
@@ -76,7 +76,7 @@ def sync_matches():
 
 
 @admin_bp.get("/matches")
-@admin_required
+@super_admin_required
 def admin_matches():
     maybe_sync_football_data("admin_matches", role="admin", user_id="admin", sync_types=["upcoming", "live", "results"])
     page = positive_int(request.args.get("page"), 1)
@@ -89,7 +89,7 @@ def admin_matches():
 
 
 @admin_bp.post("/matches")
-@admin_required
+@super_admin_required
 def create_match():
     payload = request.get_json(silent=True) or {}
     try:
@@ -131,7 +131,7 @@ def create_match():
 
 
 @admin_bp.put("/matches/<int:match_id>")
-@admin_required
+@super_admin_required
 def update_match(match_id):
     match = db.session.get(Match, match_id)
     if not match:
@@ -148,7 +148,7 @@ def update_match(match_id):
 
 
 @admin_bp.post("/matches/<int:match_id>/winner")
-@admin_required
+@super_admin_required
 def update_winner(match_id):
     match = db.session.get(Match, match_id)
     if not match:
@@ -161,7 +161,7 @@ def update_winner(match_id):
 
 
 @admin_bp.post("/matches/<int:match_id>/action")
-@admin_required
+@super_admin_required
 def update_match_action(match_id):
     match = db.session.get(Match, match_id)
     if not match:
@@ -189,7 +189,7 @@ def update_match_action(match_id):
 
 
 @admin_bp.delete("/matches/<int:match_id>")
-@admin_required
+@super_admin_required
 def delete_match(match_id):
     match = db.session.get(Match, match_id)
     if not match:
@@ -201,7 +201,7 @@ def delete_match(match_id):
 
 
 @admin_bp.get("/users")
-@admin_required
+@super_admin_required
 def users():
     q, country, city, mr_id = user_filter_values()
     query = filtered_users_query()
@@ -231,7 +231,7 @@ def users():
 
 
 @admin_bp.get("/users/options")
-@admin_required
+@super_admin_required
 def user_filter_options():
     country = request.args.get("country", "").strip()
     city = request.args.get("city", "").strip()
@@ -257,7 +257,7 @@ def user_filter_options():
 
 
 @admin_bp.put("/users/<int:user_id>")
-@admin_required
+@super_admin_required
 def update_user(user_id):
     user = db.session.get(Participant, user_id)
     if not user:
@@ -278,20 +278,20 @@ def update_user(user_id):
 
 
 @admin_bp.get("/leaderboard")
-@admin_required
+@super_admin_required
 def admin_leaderboard():
     return {"leaderboard": leaderboard(limit=500)}
 
 
 @admin_bp.get("/analytics")
-@admin_required
+@super_admin_required
 def analytics():
     maybe_sync_football_data("admin_analytics", role="admin", user_id="admin", sync_types=["results"])
     return admin_analytics()
 
 
 @admin_bp.get("/drug-analytics")
-@admin_required
+@super_admin_required
 def drug_analytics():
     maybe_sync_football_data("admin_analytics", role="admin", user_id="admin", sync_types=["results"])
     country = request.args.get("country", "").strip()
@@ -363,7 +363,7 @@ def drug_analytics():
 
 
 @admin_bp.get("/export/users.csv")
-@admin_required
+@super_admin_required
 def export_users():
     query = filtered_users_query()
     output = StringIO()
@@ -407,6 +407,6 @@ def filtered_users_query():
 
 
 @admin_bp.get("/predictions")
-@admin_required
+@super_admin_required
 def admin_predictions():
     return {"predictions": [prediction.to_dict() for prediction in Prediction.query.order_by(Prediction.updated_at.desc()).limit(1000).all()]}

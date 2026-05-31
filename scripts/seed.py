@@ -15,12 +15,15 @@ from scripts.country_seed import COUNTRIES
 app = create_app()
 
 DEMO_PARTICIPANTS = [
-    ("Aarav Patel", "+91", "+919876543210", "aarav@example.com", "India", "Mumbai", "MR123"),
-    ("Neha Sharma", "+91", "+919876543211", "neha@example.com", "India", "Delhi", "MR123"),
-    ("Ravi Kumar", "+91", "+919876543212", "ravi@example.com", "India", "Mumbai", "MR123"),
-    ("Priya Nair", "+91", "+919876543213", "priya@example.com", "India", "Bengaluru", "MR123"),
-    ("Maria Santos", "+55", "+5511987654321", "maria@example.com", "Brazil", "Sao Paulo", "MR220"),
-    ("Ahmed Khan", "+971", "+971501234567", "ahmed@example.com", "United Arab Emirates", "Dubai", "MR410"),
+    ("Arjun Mehta", "hetero_representative", "+91", "+919900001001", "arjun.rep@example.com", "India", "Mumbai", None, "Arjun Mehta", "+919900001001"),
+    ("Kavitha Rao", "hetero_staff", "+91", "+919900001002", "kavitha.staff@example.com", "India", "Bengaluru", None, "Kavitha Rao", "+919900001002"),
+    ("Lucas Silva", "hetero_representative", "+55", "+5511900001001", "lucas.rep@example.com", "Brazil", "Sao Paulo", None, "Lucas Silva", "+5511900001001"),
+    ("Aarav Patel", "farmacy_owner", "+91", "+919876543210", "aarav@example.com", "India", "Mumbai", "Aarav Farmacy", "Arjun Mehta", "+919900001001"),
+    ("Neha Sharma", "farmacy_head", "+91", "+919876543211", "neha@example.com", "India", "Delhi", "Neha Medicals", "Arjun Mehta", "+919900001001"),
+    ("Ravi Kumar", "farmacy_supervisor", "+91", "+919876543212", "ravi@example.com", "India", "Mumbai", "Ravi Pharmacy", "Arjun Mehta", "+919900001001"),
+    ("Priya Nair", "farmacy_sales_staff", "+91", "+919876543213", "priya@example.com", "India", "Bengaluru", "Priya Pharma", "Kavitha Rao", "+919900001002"),
+    ("Maria Santos", "farmacy_owner", "+55", "+5511987654321", "maria@example.com", "Brazil", "Sao Paulo", "Santos Farmacia", "Lucas Silva", "+5511900001001"),
+    ("Ahmed Khan", "farmacy_head", "+971", "+971501234567", "ahmed@example.com", "United Arab Emirates", "Dubai", "Ahmed Pharmacy", "", ""),
 ]
 
 DEMO_MATCHES = [
@@ -57,6 +60,16 @@ DEMO_PREDICTIONS = {
         ("India", "Vietnam", "India", "Hepcinat"),
     ],
     "+971501234567": [],
+    "+919900001001": [
+        ("Brazil", "Argentina", "Brazil", "CoviFor"),
+        ("India", "Vietnam", "India", "CoviFor"),
+    ],
+    "+919900001002": [
+        ("France", "Germany", "Draw", "Velasof"),
+    ],
+    "+5511900001001": [
+        ("Brazil", "Argentina", "Brazil", "CoviFor"),
+    ],
 }
 
 
@@ -68,6 +81,17 @@ def flag_for(country_name):
 def ensure_schema_columns():
     inspector = inspect(db.engine)
     participant_columns = {column["name"] for column in inspector.get_columns("participants")}
+    expected_participant_columns = {
+        "participant_type": "VARCHAR(40) NOT NULL DEFAULT 'farmacy_owner'",
+        "pharmacy_name": "VARCHAR(180) NULL",
+        "medical_rep_name": "VARCHAR(160) NULL",
+        "medical_rep_country_code": "VARCHAR(8) NULL",
+        "medical_rep_mobile_number": "VARCHAR(32) NULL",
+    }
+    for column_name, definition in expected_participant_columns.items():
+        if column_name not in participant_columns:
+            with db.engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE participants ADD COLUMN {column_name} {definition}"))
     if "country_code" not in participant_columns:
         with db.engine.begin() as connection:
             suffix = " AFTER full_name" if db.engine.dialect.name == "mysql" else ""
@@ -121,17 +145,22 @@ def seed_countries():
 
 
 def seed_participants():
-    for full_name, country_code, mobile, email, country, city, mr_id in DEMO_PARTICIPANTS:
+    for full_name, participant_type, country_code, mobile, email, country, city, pharmacy_name, medical_rep_name, medical_rep_mobile in DEMO_PARTICIPANTS:
         participant = Participant.query.filter_by(mobile_number=mobile).first()
         if not participant:
             participant = Participant(
                 full_name=full_name,
+                participant_type=participant_type,
+                pharmacy_name=pharmacy_name,
                 country_code=country_code,
                 mobile_number=mobile,
                 email=email,
                 country=country,
                 city=city,
-                mr_id=mr_id,
+                mr_id=None,
+                medical_rep_name=medical_rep_name,
+                medical_rep_country_code=country_code if medical_rep_mobile else None,
+                medical_rep_mobile_number=medical_rep_mobile or None,
                 total_points=0,
             )
             db.session.add(participant)
@@ -139,11 +168,16 @@ def seed_participants():
             add_points(participant, ENROLLMENT_POINTS, "Enrollment bonus")
         else:
             participant.full_name = full_name
+            participant.participant_type = participant_type
+            participant.pharmacy_name = pharmacy_name
             participant.country_code = country_code
             participant.email = email
             participant.country = country
             participant.city = city
-            participant.mr_id = mr_id
+            participant.mr_id = None
+            participant.medical_rep_name = medical_rep_name
+            participant.medical_rep_country_code = country_code if medical_rep_mobile else None
+            participant.medical_rep_mobile_number = medical_rep_mobile or None
 
 
 def seed_matches():
@@ -216,7 +250,7 @@ def seed_predictions_and_points():
 
 
 def recompute_demo_points():
-    demo_mobiles = [row[2] for row in DEMO_PARTICIPANTS]
+    demo_mobiles = [row[3] for row in DEMO_PARTICIPANTS]
     demo_users = Participant.query.filter(Participant.mobile_number.in_(demo_mobiles)).all()
     demo_user_ids = [user.id for user in demo_users]
 

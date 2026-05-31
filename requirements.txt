@@ -5,10 +5,10 @@ Flask-Limiter==3.8.0
 Flask-Migrate==4.0.7
 Flask-SQLAlchemy==3.1.1
 psycopg2-binary==2.9.10
+pyodbc==5.2.0
 python-dotenv==1.0.1
 requests==2.32.3
 gunicorn==22.0.0
 marshmallow==3.21.3
 email-validator==2.2.0
 cryptography==42.0.8
-pyodbc==5.2.0

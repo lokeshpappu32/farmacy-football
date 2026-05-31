@@ -8,6 +8,7 @@ from app.services.analytics_service import leaderboard, participant_performance
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 public_bp = Blueprint("public", __name__)
+HETERO_TYPES = {"medical_rep", "hetero_rep", "hetero_staff", "hetero_representative", "representative", "rep", "mr"}
 
 
 @public_bp.get("/performance")
@@ -23,28 +24,50 @@ def public_leaderboard():
     maybe_sync_football_data("leaderboard", role="public", sync_types=["results"])
     country = request.args.get("country", "").strip()
     medical_rep_name = request.args.get("medical_rep_name", "").strip()
+    medical_rep_mobile_number = request.args.get("medical_rep_mobile_number", "").strip()
     return {
-        "filters": {"country": country, "medical_rep_name": medical_rep_name},
-        **leaderboard_options_payload(),
-        "leaderboard": leaderboard(country=country, medical_rep_name=medical_rep_name, limit=100),
+        "filters": {
+            "country": country,
+            "medical_rep_name": medical_rep_name,
+            "medical_rep_mobile_number": medical_rep_mobile_number,
+        },
+        **leaderboard_options_payload(country=country),
+        "leaderboard": leaderboard(
+            country=country,
+            medical_rep_name=medical_rep_name,
+            medical_rep_mobile_number=medical_rep_mobile_number,
+            limit=100,
+        ),
     }
 
 
 @public_bp.get("/leaderboard/options")
 def leaderboard_options():
-    return leaderboard_options_payload()
+    country = request.args.get("country", "").strip()
+    return leaderboard_options_payload(country=country)
 
 
-def leaderboard_options_payload():
-    rep_names = {
-        row[0]
-        for row in db.session.query(Participant.medical_rep_name)
-        .filter(Participant.medical_rep_name.isnot(None), Participant.medical_rep_name != "")
-        .all()
-    }
+def leaderboard_options_payload(country=None):
+    rep_query = Participant.query.filter(
+        Participant.participant_type.in_(HETERO_TYPES),
+        Participant.full_name.isnot(None),
+        Participant.mobile_number.isnot(None),
+    )
+    if country:
+        rep_query = rep_query.filter(Participant.country == country)
+    reps = [
+        {
+            "name": row.full_name,
+            "mobile_number": row.mobile_number,
+            "country": row.country,
+            "participant_type": row.participant_type,
+        }
+        for row in rep_query.order_by(Participant.country.asc(), Participant.full_name.asc()).all()
+    ]
     return {
         "countries": [row.name for row in Country.query.filter_by(is_active=True).order_by(Country.name.asc()).all()],
-        "medical_rep_names": sorted(rep_names),
+        "medical_rep_names": sorted({row["name"] for row in reps}),
+        "medical_reps": reps,
     }
 
 

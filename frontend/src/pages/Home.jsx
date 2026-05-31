@@ -4,13 +4,25 @@ import FootballLogo from "../components/FootballLogo";
 import { useAuth } from "../context/AuthContext";
 import { homeForRole } from "../utils/auth";
 
+const pharmacyOptions = [
+  ["farmacy_owner", "Farmacy Owner"],
+  ["farmacy_head", "Farmacy Head"],
+  ["farmacy_supervisor", "Farmacy Supervisor"],
+  ["farmacy_sales_staff", "Farmacy Sales Staff"],
+];
+const heteroOptions = [
+  ["hetero_staff", "Hetero Staff"],
+  ["hetero_representative", "Hetero Representative"],
+];
+const visitorOptions = [...pharmacyOptions, ...heteroOptions].map(([value]) => value);
+
 export default function Home() {
   const [params] = useSearchParams();
-  const [visitorType, setVisitorType] = useState("farmacist");
+  const [visitorType, setVisitorType] = useState("farmacy_owner");
   const navigate = useNavigate();
   const { isAuthed, role } = useAuth();
   const visitorParam = params.get("participant_type");
-  const selectedType = visitorParam || visitorType;
+  const selectedType = visitorOptions.includes(visitorParam) ? visitorParam : visitorType;
   const enrollUrl = `/enroll?participant_type=${encodeURIComponent(selectedType)}`;
 
   useEffect(() => {
@@ -20,11 +32,11 @@ export default function Home() {
   return (
     <main
       className="relative min-h-screen overflow-hidden bg-cover bg-center text-white"
-      style={{ backgroundImage: "url('/soccer-field.webp')" }}
+      style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
-      <div className="absolute inset-0 bg-black/35" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.04)_0%,rgba(0,0,0,0.34)_42%,rgba(0,0,0,0.64)_100%)]" />
-      <div className="absolute inset-0 bg-emerald-950/30" />
+      <div className="absolute inset-0 bg-black/10" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.08)_42%,rgba(0,0,0,0.22)_100%)]" />
+      <div className="absolute inset-0 bg-emerald-950/12" />
 
       <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center px-5 py-10 text-center">
         <img
@@ -36,31 +48,10 @@ export default function Home() {
         <div className="flex flex-1 flex-col items-center justify-center pb-20 pt-10 sm:pb-24">
           <FootballLogo />
 
-          <div className="mt-24 flex flex-wrap items-center justify-center gap-x-12 gap-y-5 text-xl font-medium uppercase tracking-wide sm:text-2xl">
-            <label className="home-role-option">
-              <input
-                type="radio"
-                name="visitor_type"
-                value="farmacist"
-                checked={selectedType === "farmacist"}
-                onChange={(event) => setVisitorType(event.target.value)}
-                className="home-role-radio"
-              />
-              <span className="home-role-mark" />
-              <span>FARMACIST</span>
-            </label>
-            <label className="home-role-option normal-case">
-              <input
-                type="radio"
-                name="visitor_type"
-                value="medical_rep"
-                checked={selectedType === "medical_rep"}
-                onChange={(event) => setVisitorType(event.target.value)}
-                className="home-role-radio"
-              />
-              <span className="home-role-mark" />
-              <span>HETERO Rep.</span>
-            </label>
+          <div className="mt-14 grid w-full max-w-4xl gap-8 text-left text-sm font-semibold uppercase tracking-wide sm:text-base lg:grid-cols-[1fr_auto_1fr] lg:text-lg">
+            <RoleGroup title="Farmacist Type" options={pharmacyOptions} selectedType={selectedType} onChange={setVisitorType} />
+            <div className="hidden w-px bg-white/70 lg:block" />
+            <RoleGroup title="Hetero Staff" options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
           </div>
 
           <Link
@@ -79,5 +70,29 @@ export default function Home() {
         </Link>
       </section>
     </main>
+  );
+}
+
+function RoleGroup({ title, options, selectedType, onChange }) {
+  return (
+    <div className="mx-auto w-full max-w-sm">
+      <h2 className="mb-5 text-center text-base font-black text-white lg:text-left">{title}</h2>
+      <div className="space-y-4">
+        {options.map(([value, label]) => (
+          <label key={value} className="home-role-option">
+            <input
+              type="radio"
+              name="visitor_type"
+              value={value}
+              checked={selectedType === value}
+              onChange={(event) => onChange(event.target.value)}
+              className="home-role-radio"
+            />
+            <span className="home-role-mark" />
+            <span className="leading-snug">{label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
