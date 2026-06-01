@@ -5,13 +5,6 @@ import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 
-const participantTypeLabels = {
-  medical_rep: "HETERO Representative",
-  hetero_representative_staff: "HETERO Representative / Staff",
-  hetero_staff: "HETERO Staff",
-  hetero_representative: "HETERO Representative",
-};
-
 export default function Leaderboard({
   title = "My Standing",
   subtitle = "Farmacist standings by country and HETERO representative.",
@@ -64,7 +57,7 @@ export default function Leaderboard({
             <option className="bg-black" value="">HETERO Rep</option>
             {medicalReps.map((rep) => (
               <option className="bg-black" key={`${rep.mobile_number}-${rep.country}`} value={rep.mobile_number}>
-                {rep.name} - {participantTypeLabels[rep.participant_type] || "HETERO Representative"}
+                {rep.name} - {rep.country || "Country not set"}
               </option>
             ))}
           </select>
@@ -89,5 +82,5 @@ function uniqueRepOptions(values) {
   values.filter(Boolean).forEach((rep) => {
     if (rep.mobile_number && !byMobile.has(rep.mobile_number)) byMobile.set(rep.mobile_number, rep);
   });
-  return [...byMobile.values()].sort((a, b) => `${a.name} ${a.participant_type}`.localeCompare(`${b.name} ${b.participant_type}`));
+  return [...byMobile.values()].sort((a, b) => `${a.name} ${a.country}`.localeCompare(`${b.name} ${b.country}`));
 }

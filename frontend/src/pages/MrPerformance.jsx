@@ -34,7 +34,11 @@ export default function MrPerformance({ mode = "admin" }) {
         <StatCard label={mode === "rep" ? "My Enrollments" : "Total Enrollments"} value={summary.enrollments ?? summary.total_enrollments} icon={FaUsers} />
         <StatCard label={mode === "rep" ? "User Participations" : "Total Participations"} value={summary.participations ?? summary.total_participations} icon={FaChartLine} />
         <StatCard label={mode === "rep" ? "Global Rank" : "HETERO Representatives"} value={summary.global_rank ?? summary.total_mrs} icon={FaMedal} />
-        <StatCard label={mode === "rep" ? "Country Rank" : "Active Representatives"} value={summary.country_rank ?? summary.active_mrs} icon={FaGlobeAsia} />
+        <StatCard
+          label={mode === "rep" ? "Country Rank" : "Avg Participation / Enrollment"}
+          value={mode === "rep" ? summary.country_rank : summary.avg_participations_per_enrollment}
+          icon={FaGlobeAsia}
+        />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">

@@ -5,12 +5,13 @@ const SPANISH_COUNTRY_NAMES = new Set([
   "el salvador",
   "guatemala",
   "honduras",
+  "mexico",
   "nicaragua",
   "panama",
   "peru",
 ]);
 
-const SPANISH_COUNTRY_CODES = new Set(["CL", "CR", "DO", "SV", "GT", "HN", "NI", "PA", "PE"]);
+const SPANISH_COUNTRY_CODES = new Set(["CL", "CR", "DO", "SV", "GT", "HN", "MX", "NI", "PA", "PE"]);
 
 export function normalizeCountryName(country) {
   return String(country || "")

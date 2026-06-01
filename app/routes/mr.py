@@ -2,7 +2,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 
 from app.auth.guards import admin_required, hetero_rep_required
-from app.models import Country
+from app.models import Country, PointsHistory, Prediction
 from app.services.analytics_service import hetero_points_leaderboard, hetero_rep_participation_performance, leaderboard, mr_dashboard_analytics
 from app.services.footballdata_io_service import maybe_sync_football_data
 
@@ -50,6 +50,20 @@ def rep_standing():
         "countries": countries_payload(),
         "own": own,
         "mr_rankings": rows,
+        "points_history": [
+            item.to_dict()
+            for item in PointsHistory.query.filter_by(participant_id=identity)
+            .order_by(PointsHistory.created_at.desc())
+            .limit(100)
+            .all()
+        ],
+        "match_history": [
+            item.to_dict()
+            for item in Prediction.query.filter_by(participant_id=identity)
+            .order_by(Prediction.updated_at.desc())
+            .limit(100)
+            .all()
+        ],
     }
 
 
