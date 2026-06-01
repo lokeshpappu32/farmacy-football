@@ -5,7 +5,7 @@ from flask import current_app
 
 from app.extensions import db
 from app.models import AdminLog, Match, Prediction
-from app.services.points_service import WINNER_POINTS, add_points, reverse_cancelled_match_participation
+from app.services.points_service import WINNER_POINTS, add_points
 from app.utils.time import as_utc
 
 
@@ -135,14 +135,11 @@ def cancel_match(match, source="manual"):
     match.winner_team = None
     match.status = "cancelled"
     marked = 0
-    reversed_count = 0
     for prediction in Prediction.query.filter_by(match_id=match.id).all():
-        if reverse_cancelled_match_participation(prediction):
-            reversed_count += 1
         prediction.is_correct = False
         marked += 1
     action = "cancel_match" if source == "manual" else f"{source}_cancel_match"
-    db.session.add(AdminLog(admin_action=action, details=f"Match {match.id} cancelled. {marked} predictions closed. {reversed_count} participation rewards reversed."))
+    db.session.add(AdminLog(admin_action=action, details=f"Match {match.id} cancelled. {marked} predictions closed. Participation rewards retained."))
     db.session.commit()
     return marked
 

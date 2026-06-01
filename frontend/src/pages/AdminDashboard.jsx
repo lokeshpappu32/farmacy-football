@@ -39,7 +39,7 @@ export default function AdminDashboard() {
         <StatCard label="Accuracy" value={`${data.accuracy || 0}%`} icon={FaBullseye} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <AnalyticsList title="HETERO Rep Performance" rows={data.mr_analytics || []} labelKey="medical_rep_name" />
+        <AnalyticsList title="HETERO Representative / Staff Performance" rows={data.mr_analytics || []} labelKey="medical_rep_name" />
         <section className="glass rounded-3xl p-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-black">Admin Logs</h2>

@@ -3,10 +3,11 @@ from io import StringIO
 
 from flask import Blueprint, Response, current_app, request
 
-from app.auth.guards import super_admin_required
+from app.auth.guards import admin_or_super_admin_required, super_admin_required
 from app.extensions import db
 from app.models import AdminLog, ApiCallLog, ApiSyncState, Country, Match, Participant, Prediction
 from app.services.analytics_service import admin_analytics, leaderboard
+from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 from app.services.footballdata_io_service import maybe_sync_football_data
 from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, reschedule_match, sync_matches_from_api
 from app.utils.serialization import utc_iso
@@ -201,21 +202,13 @@ def delete_match(match_id):
 
 
 @admin_bp.get("/users")
-@super_admin_required
+@admin_or_super_admin_required
 def users():
-    q, country, city, mr_id = user_filter_values()
+    q, country, participant_type = user_filter_values()
     query = filtered_users_query()
 
-    city_options_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
-    mr_options_query = db.session.query(Participant.mr_id).filter(Participant.mr_id.isnot(None), Participant.mr_id != "")
-    if country:
-        city_options_query = city_options_query.filter(Participant.country == country)
-        mr_options_query = mr_options_query.filter(Participant.country == country)
-    if city:
-        mr_options_query = mr_options_query.filter(Participant.city == city)
-
     return {
-        "filters": {"q": q, "country": country, "city": city, "mr_id": mr_id},
+        "filters": {"q": q, "country": country, "participant_type": participant_type},
         "countries": [
             row[0]
             for row in db.session.query(Participant.country)
@@ -224,24 +217,15 @@ def users():
             .order_by(Participant.country)
             .all()
         ],
-        "cities": [row[0] for row in city_options_query.distinct().order_by(Participant.city).all()],
-        "mr_ids": [row[0] for row in mr_options_query.distinct().order_by(Participant.mr_id).all()],
+        "participant_types": participant_type_options(),
         "users": [user.to_dict(include_private=True) for user in query.order_by(Participant.created_at.desc()).limit(500).all()],
     }
 
 
 @admin_bp.get("/users/options")
-@super_admin_required
+@admin_or_super_admin_required
 def user_filter_options():
     country = request.args.get("country", "").strip()
-    city = request.args.get("city", "").strip()
-    city_options_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
-    mr_options_query = db.session.query(Participant.mr_id).filter(Participant.mr_id.isnot(None), Participant.mr_id != "")
-    if country:
-        city_options_query = city_options_query.filter(Participant.country == country)
-        mr_options_query = mr_options_query.filter(Participant.country == country)
-    if city:
-        mr_options_query = mr_options_query.filter(Participant.city == city)
     return {
         "countries": [
             row[0]
@@ -251,8 +235,7 @@ def user_filter_options():
             .order_by(Participant.country)
             .all()
         ],
-        "cities": [row[0] for row in city_options_query.distinct().order_by(Participant.city).all()],
-        "mr_ids": [row[0] for row in mr_options_query.distinct().order_by(Participant.mr_id).all()],
+        "participant_types": participant_type_options(),
     }
 
 
@@ -363,14 +346,14 @@ def drug_analytics():
 
 
 @admin_bp.get("/export/users.csv")
-@super_admin_required
+@admin_or_super_admin_required
 def export_users():
     query = filtered_users_query()
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id", "full_name", "mobile_number", "email", "country", "city", "mr_id", "total_points", "created_at"])
+    writer.writerow(["id", "full_name", "user_type", "mobile_number", "email", "country", "city", "hetero_rep_name", "hetero_rep_mobile", "total_points", "created_at"])
     for user in query.order_by(Participant.created_at.desc()).all():
-        writer.writerow([user.id, user.full_name, user.mobile_number, user.email, user.country, user.city, user.mr_id, user.total_points, user.created_at])
+        writer.writerow([user.id, user.full_name, user.participant_type, user.mobile_number, user.email, user.country, user.city, user.medical_rep_name, user.medical_rep_mobile_number, user.total_points, user.created_at])
     return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=farmacy-users.csv"})
 
 
@@ -378,13 +361,12 @@ def user_filter_values():
     return (
         request.args.get("q", "").strip(),
         request.args.get("country", "").strip(),
-        request.args.get("city", "").strip(),
-        request.args.get("mr_id", "").strip(),
+        request.args.get("participant_type", request.args.get("user_type", "")).strip(),
     )
 
 
 def filtered_users_query():
-    q, country, city, mr_id = user_filter_values()
+    q, country, participant_type = user_filter_values()
     query = Participant.query
     if q:
         query = query.filter(
@@ -395,15 +377,29 @@ def filtered_users_query():
                 Participant.country.ilike(f"%{q}%"),
                 Participant.city.ilike(f"%{q}%"),
                 Participant.mr_id.ilike(f"%{q}%"),
+                Participant.medical_rep_name.ilike(f"%{q}%"),
+                Participant.medical_rep_mobile_number.ilike(f"%{q}%"),
             )
         )
     if country:
         query = query.filter(Participant.country == country)
-    if city:
-        query = query.filter(Participant.city == city)
-    if mr_id:
-        query = query.filter(Participant.mr_id == mr_id)
+    if participant_type:
+        if participant_type == "farmacy_head_supervisor":
+            query = query.filter(Participant.participant_type.in_({"farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor"}))
+        elif participant_type == "hetero_representative_staff":
+            query = query.filter(Participant.participant_type.in_(HETERO_TYPES))
+        else:
+            query = query.filter(Participant.participant_type == participant_type)
     return query
+
+
+def participant_type_options():
+    return [
+        {"value": "farmacy_owner", "label": "Farmacy Owner"},
+        {"value": "farmacy_head_supervisor", "label": "Farmacy Head / Supervisor"},
+        {"value": "farmacy_sales_staff", "label": "Farmacy Sales Staff"},
+        {"value": "hetero_representative_staff", "label": "HETERO Representative / Staff"},
+    ]
 
 
 @admin_bp.get("/predictions")

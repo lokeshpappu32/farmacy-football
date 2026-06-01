@@ -7,13 +7,24 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 def database_uri():
-    azure_sql_connection = os.getenv("AZURE_SQL_CONNECTION_STRING", "").strip()
-    if azure_sql_connection:
-        return f"mssql+pyodbc:///?odbc_connect={quote_plus(azure_sql_connection)}"
-    raw_uri = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/farmacy_football").strip()
+    azure_sql = os.getenv("AZURE_SQL_CONNECTION_STRING", "").strip()
+    raw_uri = os.getenv("DATABASE_URL", "").strip()
     if raw_uri.startswith("postgres://"):
         return raw_uri.replace("postgres://", "postgresql://", 1)
-    return raw_uri
+    if raw_uri:
+        return raw_uri
+    if azure_sql:
+        return f"mssql+pyodbc:///?odbc_connect={quote_plus(azure_sql)}"
+    return "mssql+pyodbc:///?odbc_connect=" + quote_plus(
+        "Driver={ODBC Driver 18 for SQL Server};"
+        "Server=tcp:your-server.database.windows.net,1433;"
+        "Database=your-database;"
+        "Uid=your-user;"
+        "Pwd=your-password;"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
+    )
 
 
 class Config:

@@ -1,16 +1,23 @@
 import { useEffect, useState } from "react";
 import LeaderboardList from "../components/LeaderboardList";
+import IdentityHeader from "../components/IdentityHeader";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 
 const participantTypeLabels = {
   medical_rep: "HETERO Representative",
+  hetero_representative_staff: "HETERO Representative / Staff",
   hetero_staff: "HETERO Staff",
   hetero_representative: "HETERO Representative",
 };
 
-export default function Leaderboard() {
+export default function Leaderboard({
+  title = "My Standing",
+  subtitle = "Farmacist standings by country and HETERO representative.",
+  identityLabel = "Name of the Farmacist",
+  showIdentity = true,
+}) {
   const [filters, setFilters] = useState({ country: "", medical_rep_mobile_number: "" });
   const [options, setOptions] = useState({ countries: [], medical_reps: [] });
   const { data, loading, error, refresh } = useApi(async () => {
@@ -34,10 +41,11 @@ export default function Leaderboard() {
   const medicalReps = uniqueRepOptions([...(options.medical_reps || []), ...(data?.medical_reps || [])]);
   return (
     <div className="space-y-6">
+      {showIdentity && <IdentityHeader nameLabel={identityLabel} />}
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-black">My Standing</h1>
-          <p className="text-white/80">Farmacist standings by country and HETERO representative.</p>
+          <h1 className="text-3xl font-black">{title}</h1>
+          <p className="text-white/80">{subtitle}</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-[180px_180px_auto]">
           <select

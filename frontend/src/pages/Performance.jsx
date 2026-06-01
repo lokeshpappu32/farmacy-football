@@ -1,5 +1,6 @@
 import { FaBullseye, FaChartLine, FaMedal, FaTrophy } from "react-icons/fa";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import IdentityHeader from "../components/IdentityHeader";
 import StatCard from "../components/StatCard";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
@@ -11,6 +12,7 @@ export default function Performance() {
   if (error) return <div className="glass rounded-2xl p-6">{error}</div>;
   return (
     <div className="space-y-6">
+      <IdentityHeader nameLabel="Name of the Farmacist" />
       <div>
         <h1 className="text-3xl font-black">Performance Dashboard</h1>
         <p className="text-white/60">Track points, prediction accuracy, match history, and points history.</p>
@@ -58,7 +60,7 @@ export default function Performance() {
 function predictionResultLabel(prediction) {
   if (prediction.is_correct === null) return "Awaiting result";
   if (prediction.is_correct) return "Correct +50";
-  if (prediction.match?.status === "cancelled") return "Match cancelled - no winner bonus";
+  if (prediction.match?.status === "cancelled") return "Match cancelled - participation points retained";
   if (prediction.match?.winner_team === "Draw") return "Draw result - prediction did not match";
   return "Wrong prediction";
 }

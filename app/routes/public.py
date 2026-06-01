@@ -8,7 +8,7 @@ from app.services.analytics_service import leaderboard, participant_performance
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 public_bp = Blueprint("public", __name__)
-HETERO_TYPES = {"medical_rep", "hetero_rep", "hetero_staff", "hetero_representative", "representative", "rep", "mr"}
+HETERO_TYPES = {"medical_rep", "hetero_rep", "hetero_representative_staff", "hetero_staff", "hetero_representative", "representative", "rep", "mr"}
 
 
 @public_bp.get("/performance")

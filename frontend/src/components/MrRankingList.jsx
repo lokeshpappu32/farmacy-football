@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 
-export default function MrRankingList({ rows = [], showCountry = true }) {
+export default function MrRankingList({ rows = [], showCountry = true, scroll = true }) {
   return (
-    <div className="scroll-panel max-h-[560px] space-y-3 overflow-y-auto pr-2">
+    <div className={`${scroll ? "scroll-panel max-h-[560px] overflow-y-auto pr-2" : ""} space-y-3`}>
       {rows.map((row, index) => (
         <motion.div
           key={`${row.mobile_number}-${row.rank}`}
@@ -15,7 +15,14 @@ export default function MrRankingList({ rows = [], showCountry = true }) {
         >
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/45 text-lg font-black text-gold">
-              {row.rank <= 3 ? <img src="/images/cup_18104567.svg" alt={`Rank ${row.rank}`} className="h-7 w-7" /> : row.rank}
+              {row.rank <= 3 ? (
+                <span className="relative inline-flex h-8 w-8 items-center justify-center">
+                  <img src="/images/cup_18104567.svg" alt={`Rank ${row.rank}`} className="h-7 w-7" />
+                  <span className="absolute inset-0 flex items-center justify-center pt-1 text-base font-black text-red-600 drop-shadow-[0_0_8px_rgba(239,68,68,.95)]">
+                    {row.rank}
+                  </span>
+                </span>
+              ) : row.rank}
             </div>
             <div className="min-w-0">
               <div className="truncate text-lg font-black">{row.full_name}</div>
@@ -25,16 +32,16 @@ export default function MrRankingList({ rows = [], showCountry = true }) {
                   <span>{row.country}</span>
                 </div>
               )}
-              <div className="mt-1 text-xs text-white/45">{row.enrollments} enrolled farmacists</div>
+              <div className="mt-1 text-xs text-white/45">{row.enrollments ?? "-"} enrolled farmacists</div>
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <div className="text-2xl font-black text-gold">{row.participations}</div>
-            <div className="text-[10px] uppercase tracking-widest text-white/50">participations</div>
+            <div className="text-2xl font-black text-gold">{row.total_points ?? row.participations}</div>
+            <div className="text-[10px] uppercase tracking-widest text-white/50">{row.total_points !== undefined ? "points" : "participations"}</div>
           </div>
         </motion.div>
       ))}
-      {!rows.length && <div className="rounded-2xl bg-white/10 p-5 text-white/60">No MR ranking data available yet.</div>}
+      {!rows.length && <div className="rounded-2xl bg-white/10 p-5 text-white/60">No HETERO Representative / Staff ranking data available yet.</div>}
     </div>
   );
 }

@@ -1,31 +1,42 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import AppFooter from "../components/AppFooter";
 import FootballLogo from "../components/FootballLogo";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import { rememberSelectedCountry } from "../utils/language";
 
 const fallbackCountries = [{ name: "India", iso_code: "IN", country_code: "+91", label: "India (+91)" }];
 const mrEnrollmentMessage = "Kindly ask your Hetero Representative to enroll first using his/her mobile number.";
 const participantLabels = {
   farmacy_owner: "Farmacy Owner",
+  farmacy_head_supervisor: "Farmacy Head / Supervisor",
   farmacy_head: "Farmacy Head",
   farmacy_supervisor: "Farmacy Supervisor",
   farmacy_sales_staff: "Farmacy Sales Staff",
+  hetero_representative_staff: "HETERO Representative / Staff",
   hetero_staff: "HETERO Staff",
   hetero_representative: "HETERO Representative",
 };
 const participantTypes = new Set(Object.keys(participantLabels));
 const participantAliases = {
   farmacist: "farmacy_owner",
-  medical_rep: "hetero_representative",
-  hetero_rep: "hetero_representative",
-  representative: "hetero_representative",
-  rep: "hetero_representative",
-  mr: "hetero_representative",
+  pharmacy_head: "farmacy_head_supervisor",
+  farmacy_head: "farmacy_head_supervisor",
+  pharmacy_supervisor: "farmacy_head_supervisor",
+  farmacy_supervisor: "farmacy_head_supervisor",
+  medical_rep: "hetero_representative_staff",
+  hetero_rep: "hetero_representative_staff",
+  representative: "hetero_representative_staff",
+  staff: "hetero_representative_staff",
+  hetero_staff: "hetero_representative_staff",
+  hetero_representative: "hetero_representative_staff",
+  rep: "hetero_representative_staff",
+  mr: "hetero_representative_staff",
 };
-const pharmacyTypes = new Set(["farmacy_owner", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"]);
-const heteroTypes = new Set(["hetero_staff", "hetero_representative"]);
+const pharmacyTypes = new Set(["farmacy_owner", "farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"]);
+const heteroTypes = new Set(["hetero_representative_staff", "hetero_staff", "hetero_representative"]);
 const termsText = [
   ["1. Purpose", "This Campaign is a voluntary pharmacist engagement initiative conducted by representatives associated with Hetero and/or its affiliated entities (“Organizer”) for promotional interaction, participation engagement, and entertainment purposes only.\n\nThis Campaign does not constitute gambling, betting, wagering, lottery, gaming, or any activity involving monetary stakes or consideration."],
   ["2. Eligibility", "Participation is open only to legally eligible pharmacists and authorized pharmacy personnel aged 18 years or above, subject to applicable local laws, institutional policies, and professional regulations.\n\nParticipation is entirely voluntary and independent."],
@@ -48,6 +59,7 @@ export default function Enroll() {
   const initialType = participantTypes.has(normalizedRequestedType) ? normalizedRequestedType : "farmacy_owner";
   const [countries, setCountries] = useState(fallbackCountries);
   const [countryQuery, setCountryQuery] = useState("");
+  const [showCountryList, setShowCountryList] = useState(false);
   const [form, setForm] = useState({
     participant_type: initialType,
     full_name: "",
@@ -63,6 +75,8 @@ export default function Enroll() {
   const [error, setError] = useState("");
   const [repEnrollmentPopup, setRepEnrollmentPopup] = useState("");
   const [showTerms, setShowTerms] = useState(false);
+  const [mobileConfirm, setMobileConfirm] = useState(null);
+  const [confirmedMobiles, setConfirmedMobiles] = useState({});
   const [loading, setLoading] = useState(false);
   const { enroll } = useAuth();
   const navigate = useNavigate();
@@ -77,6 +91,24 @@ export default function Enroll() {
   }, []);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const confirmMobileIfReady = (field, label) => {
+    const value = String(form[field] || "").trim();
+    if (!/^[0-9]{7,15}$/.test(value)) return;
+    if (confirmedMobiles[field] === value) return;
+    const prefix = field === "mobile_number" ? form.country_code : form.medical_rep_country_code;
+    setMobileConfirm({ field, label, value, prefix });
+  };
+  const acceptMobileConfirm = () => {
+    if (!mobileConfirm) return;
+    setConfirmedMobiles((current) => ({ ...current, [mobileConfirm.field]: mobileConfirm.value }));
+    setMobileConfirm(null);
+  };
+  const editMobileConfirm = () => {
+    const field = mobileConfirm?.field;
+    setMobileConfirm(null);
+    if (!field) return;
+    window.setTimeout(() => document.querySelector(`[name="${field}"]`)?.focus(), 50);
+  };
   const updateCountry = (value) => {
     setCountryQuery(value);
     const selected = countries.find((country) => {
@@ -89,7 +121,29 @@ export default function Enroll() {
       country_code: selected ? selected.country_code : "",
       medical_rep_country_code: selected ? selected.country_code : "",
     }));
+    if (selected) rememberSelectedCountry(selected.name);
   };
+  const selectCountry = (country) => {
+    setCountryQuery(country.label || `${country.name} (${country.country_code})`);
+    setForm((current) => ({
+      ...current,
+      country: country.name,
+      country_code: country.country_code,
+      medical_rep_country_code: country.country_code,
+    }));
+    rememberSelectedCountry(country.name);
+    setShowCountryList(false);
+  };
+
+  const filteredCountries = countries.filter((country) => {
+    const search = countryQuery.trim().toLowerCase();
+    if (!search) return true;
+    return (
+      country.name.toLowerCase().includes(search) ||
+      String(country.country_code || "").toLowerCase().includes(search) ||
+      String(country.label || "").toLowerCase().includes(search)
+    );
+  });
 
   const submit = async (event) => {
     event.preventDefault();
@@ -122,7 +176,7 @@ export default function Enroll() {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-cover bg-center px-3 py-6 text-white sm:px-4 sm:py-8"
+      className="relative flex min-h-screen flex-col overflow-hidden bg-cover bg-center px-3 pt-6 text-white sm:px-4 sm:pt-8"
       style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
       <div className="absolute inset-0 bg-black/10" />
@@ -145,17 +199,48 @@ export default function Enroll() {
             </Field>
           )}
           <Field label="Country">
-            <input
-              className="enroll-input"
-              required
-              list="country-options"
-              placeholder="Select Country"
-              value={countryQuery}
-              onChange={(event) => updateCountry(event.target.value)}
-            />
-            <datalist id="country-options">
-              {countries.map((country) => <option key={country.iso_code} value={country.label || `${country.name} (${country.country_code})`} />)}
-            </datalist>
+            <div className="relative min-w-0">
+              <div className="flex h-[42px] overflow-hidden rounded-[10px] border border-white/25 bg-[rgba(239,244,236,.9)] focus-within:border-white/85 focus-within:shadow-[0_0_0_4px_rgba(255,255,255,.12)]">
+                <span className="flex w-[70px] shrink-0 items-center justify-center border-r border-black/10 px-2 text-sm font-black text-red-700 sm:w-[76px]">
+                  {form.country_code || "Code"}
+                </span>
+                <input
+                  className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[#050608] outline-none placeholder:text-black/45"
+                  required
+                  placeholder="Search country or code"
+                  value={countryQuery}
+                  onChange={(event) => {
+                    updateCountry(event.target.value);
+                    setShowCountryList(true);
+                  }}
+                  onFocus={() => setShowCountryList(true)}
+                  onBlur={() => window.setTimeout(() => setShowCountryList(false), 140)}
+                  autoComplete="off"
+                />
+              </div>
+              {showCountryList && (
+                <div className="scroll-panel absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-64 w-full overflow-y-auto overflow-x-hidden rounded-2xl border border-gold/25 bg-[#0b0d10] p-2 shadow-[0_18px_40px_rgba(0,0,0,.45)]">
+                  {filteredCountries.length ? (
+                    filteredCountries.map((country) => (
+                      <button
+                        key={country.iso_code}
+                        type="button"
+                        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-white transition hover:bg-gold/15"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectCountry(country);
+                        }}
+                      >
+                        <span className="min-w-0 break-words leading-snug">{country.name}</span>
+                        <span className="shrink-0 text-gold">{country.country_code}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-3 text-sm font-semibold text-white/55">No countries found</div>
+                  )}
+                </div>
+              )}
+            </div>
           </Field>
           <Field label="Mobile Number">
             <input
@@ -166,6 +251,8 @@ export default function Enroll() {
               title="Enter 7 to 15 digits only."
               value={form.mobile_number}
               onChange={(event) => update("mobile_number", event.target.value.replace(/\D/g, ""))}
+              onBlur={() => confirmMobileIfReady("mobile_number", "Mobile Number")}
+              name="mobile_number"
             />
           </Field>
           {pharmacyTypes.has(form.participant_type) && (
@@ -182,19 +269,22 @@ export default function Enroll() {
                   title="Enter 7 to 15 digits only."
                   value={form.medical_rep_mobile_number}
                   onChange={(event) => update("medical_rep_mobile_number", event.target.value.replace(/\D/g, ""))}
+                  onBlur={() => confirmMobileIfReady("medical_rep_mobile_number", "HETERO Rep. Mobile Number")}
+                  name="medical_rep_mobile_number"
                 />
               </Field>
             </>
           )}
         </div>
 
-        <label className="mt-5 flex items-center justify-center gap-3 text-base italic">
+        <label className="mt-5 flex cursor-pointer items-center justify-center gap-3 text-base italic">
           <input
             type="checkbox"
-            className="h-5 w-5 accent-white"
+            className="terms-checkbox-input"
             checked={form.accepted_terms}
             onChange={(event) => update("accepted_terms", event.target.checked)}
           />
+          <span className="terms-checkbox-mark" aria-hidden="true" />
           <span>
             I accept the{" "}
             <button type="button" className="underline" onClick={() => setShowTerms(true)}>
@@ -208,6 +298,15 @@ export default function Enroll() {
         </button>
       </form>
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      {mobileConfirm && (
+        <MobileConfirmModal
+          label={mobileConfirm.label}
+          number={`${mobileConfirm.prefix || ""} ${mobileConfirm.value}`.trim()}
+          onConfirm={acceptMobileConfirm}
+          onEdit={editMobileConfirm}
+        />
+      )}
+      <AppFooter />
     </div>
   );
 }
@@ -237,6 +336,28 @@ function TermsModal({ onClose }) {
               <p className="mt-1 whitespace-pre-line text-sm leading-6 text-white/75">{copy}</p>
             </section>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileConfirmModal({ label, number, onConfirm, onEdit }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+      <div className="w-full max-w-md rounded-3xl border border-gold/25 bg-[#07120d] p-5 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,.5)]">
+        <h2 className="text-2xl font-black">{label}</h2>
+        <p className="mt-3 text-sm text-white/65">Please confirm this mobile number is correct.</p>
+        <div className="mt-5 rounded-2xl border border-white/12 bg-white/10 px-4 py-4 text-2xl font-black text-gold">
+          {number}
+        </div>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button type="button" className="btn-ghost" onClick={onEdit}>
+            Edit
+          </button>
+          <button type="button" className="btn-primary" onClick={onConfirm}>
+            Correct
+          </button>
         </div>
       </div>
     </div>

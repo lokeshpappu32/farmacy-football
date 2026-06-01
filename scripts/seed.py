@@ -15,15 +15,21 @@ from scripts.country_seed import COUNTRIES
 app = create_app()
 
 DEMO_PARTICIPANTS = [
-    ("Arjun Mehta", "hetero_representative", "+91", "+919900001001", "arjun.rep@example.com", "India", "Mumbai", None, "Arjun Mehta", "+919900001001"),
-    ("Kavitha Rao", "hetero_staff", "+91", "+919900001002", "kavitha.staff@example.com", "India", "Bengaluru", None, "Kavitha Rao", "+919900001002"),
-    ("Lucas Silva", "hetero_representative", "+55", "+5511900001001", "lucas.rep@example.com", "Brazil", "Sao Paulo", None, "Lucas Silva", "+5511900001001"),
+    ("Arjun Mehta", "hetero_representative_staff", "+91", "+919900001001", "arjun.rep@example.com", "India", "Mumbai", None, "Arjun Mehta", "+919900001001"),
+    ("Kavitha Rao", "hetero_representative_staff", "+91", "+919900001002", "kavitha.staff@example.com", "India", "Bengaluru", None, "Kavitha Rao", "+919900001002"),
+    ("Lucas Silva", "hetero_representative_staff", "+55", "+5511900001001", "lucas.rep@example.com", "Brazil", "Sao Paulo", None, "Lucas Silva", "+5511900001001"),
+    ("Maya Tan", "hetero_representative_staff", "+60", "+601230001001", "maya.tan@example.com", "Malaysia", "Kuala Lumpur", None, "Maya Tan", "+601230001001"),
+    ("Daniel Mensah", "hetero_representative_staff", "+233", "+233200001001", "daniel.mensah@example.com", "Ghana", "Accra", None, "Daniel Mensah", "+233200001001"),
     ("Aarav Patel", "farmacy_owner", "+91", "+919876543210", "aarav@example.com", "India", "Mumbai", "Aarav Farmacy", "Arjun Mehta", "+919900001001"),
-    ("Neha Sharma", "farmacy_head", "+91", "+919876543211", "neha@example.com", "India", "Delhi", "Neha Medicals", "Arjun Mehta", "+919900001001"),
-    ("Ravi Kumar", "farmacy_supervisor", "+91", "+919876543212", "ravi@example.com", "India", "Mumbai", "Ravi Pharmacy", "Arjun Mehta", "+919900001001"),
+    ("Neha Sharma", "farmacy_head_supervisor", "+91", "+919876543211", "neha@example.com", "India", "Delhi", "Neha Medicals", "Arjun Mehta", "+919900001001"),
+    ("Ravi Kumar", "farmacy_head_supervisor", "+91", "+919876543212", "ravi@example.com", "India", "Mumbai", "Ravi Pharmacy", "Arjun Mehta", "+919900001001"),
     ("Priya Nair", "farmacy_sales_staff", "+91", "+919876543213", "priya@example.com", "India", "Bengaluru", "Priya Pharma", "Kavitha Rao", "+919900001002"),
     ("Maria Santos", "farmacy_owner", "+55", "+5511987654321", "maria@example.com", "Brazil", "Sao Paulo", "Santos Farmacia", "Lucas Silva", "+5511900001001"),
-    ("Ahmed Khan", "farmacy_head", "+971", "+971501234567", "ahmed@example.com", "United Arab Emirates", "Dubai", "Ahmed Pharmacy", "", ""),
+    ("Ahmed Khan", "farmacy_head_supervisor", "+971", "+971501234567", "ahmed@example.com", "United Arab Emirates", "Dubai", "Ahmed Pharmacy", "", ""),
+    ("Nur Aisyah", "farmacy_owner", "+60", "+601298765431", "nur.aisyah@example.com", "Malaysia", "Kuala Lumpur", "Aisyah Care", "Maya Tan", "+601230001001"),
+    ("Chen Wei", "farmacy_sales_staff", "+60", "+601298765432", "chen.wei@example.com", "Malaysia", "Penang", "Wei Wellness", "Maya Tan", "+601230001001"),
+    ("Kwame Osei", "farmacy_head_supervisor", "+233", "+233240001111", "kwame.osei@example.com", "Ghana", "Accra", "Osei Pharmacy", "Daniel Mensah", "+233200001001"),
+    ("Ama Boateng", "farmacy_owner", "+233", "+233240001112", "ama.boateng@example.com", "Ghana", "Kumasi", "Boateng Meds", "Daniel Mensah", "+233200001001"),
 ]
 
 DEMO_MATCHES = [
@@ -69,6 +75,34 @@ DEMO_PREDICTIONS = {
     ],
     "+5511900001001": [
         ("Brazil", "Argentina", "Brazil", "CoviFor"),
+    ],
+    "+601230001001": [
+        ("Brazil", "Argentina", "Brazil", "CoviFor"),
+        ("France", "Germany", "Draw", "Velasof"),
+    ],
+    "+233200001001": [
+        ("Brazil", "Argentina", "Argentina", "Hepcinat"),
+        ("France", "Germany", "Draw", "CoviFor"),
+    ],
+    "+601298765431": [
+        ("Brazil", "Argentina", "Brazil", "CoviFor"),
+        ("France", "Germany", "Draw", "Velasof"),
+        ("India", "Vietnam", "India", "CoviFor"),
+    ],
+    "+601298765432": [
+        ("Brazil", "Argentina", "Brazil", "CoviFor"),
+        ("France", "Germany", "Germany", "Aluvia"),
+        ("Indonesia", "Malaysia", "Malaysia", "Velasof"),
+    ],
+    "+233240001111": [
+        ("Brazil", "Argentina", "Brazil", "CoviFor"),
+        ("France", "Germany", "Draw", "CoviFor"),
+        ("India", "Vietnam", "Vietnam", "Tenvir"),
+    ],
+    "+233240001112": [
+        ("Brazil", "Argentina", "Brazil", "Favivir"),
+        ("Spain", "Portugal", "Portugal", "Ledifos"),
+        ("Indonesia", "Malaysia", "Indonesia", "Aluvia"),
     ],
 }
 

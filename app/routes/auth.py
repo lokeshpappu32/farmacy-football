@@ -4,12 +4,13 @@ from flask_jwt_extended import create_access_token
 from app.extensions import db, limiter
 from app.models import Participant
 from app.services.points_service import ENROLLMENT_POINTS, add_points
+from app.utils.participant_types import app_role_for_participant
 from app.utils.validators import ValidationError, compose_mobile, require_fields
 
 auth_bp = Blueprint("auth", __name__)
 
-PHARMACY_TYPES = {"farmacy_owner", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"}
-HETERO_TYPES = {"hetero_staff", "hetero_representative"}
+PHARMACY_TYPES = {"farmacy_owner", "farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"}
+HETERO_TYPES = {"hetero_representative_staff", "hetero_staff", "hetero_representative"}
 LEGACY_FARMACIST_TYPES = {"farmacist"}
 LEGACY_HETERO_TYPES = {"medical_rep", "hetero_rep", "representative", "rep", "mr"}
 PARTICIPANT_TYPES = PHARMACY_TYPES | HETERO_TYPES | LEGACY_FARMACIST_TYPES | LEGACY_HETERO_TYPES
@@ -26,14 +27,16 @@ ADMIN_CREDENTIALS = {
 def normalize_participant_type(payload):
     participant_type = str(payload.get("participant_type") or "").strip().lower()
     participant_type = participant_type.replace("-", "_").replace(" ", "_")
+    if participant_type in {"pharmacy_head", "farmacy_head", "pharmacy_supervisor", "farmacy_supervisor"}:
+        return "farmacy_head_supervisor"
+    if participant_type in {"hetero_staff", "hetero_representative"} | LEGACY_HETERO_TYPES:
+        return "hetero_representative_staff"
     if participant_type in PHARMACY_TYPES | HETERO_TYPES:
         return participant_type
     if participant_type in LEGACY_FARMACIST_TYPES:
         return "farmacy_owner"
-    if participant_type in LEGACY_HETERO_TYPES:
-        return "hetero_representative"
     if not payload.get("pharmacy_name") and not payload.get("medical_rep_mobile_number") and not payload.get("medical_rep_name"):
-        return "hetero_representative"
+        return "hetero_representative_staff"
     return "farmacy_owner"
 
 
@@ -43,6 +46,12 @@ def is_hetero_type(participant_type):
 
 def is_pharmacy_type(participant_type):
     return participant_type in PHARMACY_TYPES
+
+
+def participant_login_response(participant, status_code=200):
+    role = app_role_for_participant(participant)
+    token = create_access_token(identity=str(participant.id), additional_claims={"role": role})
+    return {"token": token, "role": role, "participant": participant.to_dict(include_private=True)}, status_code
 
 
 def compose_labeled_mobile(country_code, mobile_number, label):
@@ -118,8 +127,7 @@ def enroll():
         db.session.flush()
         add_points(participant, ENROLLMENT_POINTS, "Enrollment bonus")
         db.session.commit()
-        token = create_access_token(identity=str(participant.id), additional_claims={"role": "participant"})
-        return {"token": token, "role": "participant", "participant": participant.to_dict(include_private=True)}, 201
+        return participant_login_response(participant, 201)
     except ValidationError as exc:
         db.session.rollback()
         return {"message": str(exc)}, 400
@@ -161,7 +169,6 @@ def participant_login():
         participant = Participant.query.filter_by(mobile_number=mobile).first()
         if not participant:
             return {"message": "No enrollment found for this mobile number."}, 404
-        token = create_access_token(identity=str(participant.id), additional_claims={"role": "participant"})
-        return {"token": token, "role": "participant", "participant": participant.to_dict(include_private=True)}
+        return participant_login_response(participant)
     except ValidationError as exc:
         return {"message": str(exc)}, 400

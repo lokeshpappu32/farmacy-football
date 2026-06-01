@@ -7,9 +7,12 @@ import TeamLogo from "../components/TeamLogo";
 import Toast from "../components/Toast";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
+import IdentityHeader from "../components/IdentityHeader";
+import { useAuth } from "../context/AuthContext";
 import { formatDateTime } from "../utils/datetime";
 
 export default function Dashboard() {
+  const { role } = useAuth();
   const today = new Date();
   const clientDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const { data, loading, error, refresh } = useApi(
@@ -49,6 +52,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <IdentityHeader nameLabel={role === "hetero_rep" ? "Participant name" : "Name of the Farmacist"} />
       <Toast message={toast} onClose={() => setToast("")} tone={toast.includes("saved") ? "gold" : "error"} />
       <Announcements announcements={data?.announcements || []} />
 {/* 

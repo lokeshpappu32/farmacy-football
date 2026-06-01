@@ -1,7 +1,9 @@
 from flask import Blueprint, request
+from flask_jwt_extended import get_jwt_identity
 
-from app.auth.guards import admin_required
-from app.services.analytics_service import mr_dashboard_analytics, mr_participation_rankings
+from app.auth.guards import admin_required, hetero_rep_required
+from app.models import Country
+from app.services.analytics_service import hetero_points_leaderboard, hetero_rep_participation_performance, leaderboard, mr_dashboard_analytics
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 mr_bp = Blueprint("mr", __name__)
@@ -20,9 +22,44 @@ def mr_performance():
 def mr_standing():
     maybe_sync_football_data("mr_dashboard", role="admin", user_id="mr_admin", sync_types=["results"])
     country = request.args.get("country", "").strip()
-    data = mr_dashboard_analytics(country=country)
     return {
-        "filters": data["filters"],
-        "countries": data["countries"],
-        "mr_rankings": data["mr_rankings"],
+        "filters": {"country": country},
+        "countries": countries_payload(),
+        "mr_rankings": hetero_points_leaderboard(country=country),
     }
+
+
+@mr_bp.get("/rep/performance")
+@hetero_rep_required
+def rep_performance():
+    identity = int(get_jwt_identity())
+    maybe_sync_football_data("rep_performance", role="hetero_rep", user_id=identity, sync_types=["results"])
+    return hetero_rep_participation_performance(identity)
+
+
+@mr_bp.get("/rep/standing")
+@hetero_rep_required
+def rep_standing():
+    identity = int(get_jwt_identity())
+    maybe_sync_football_data("rep_standing", role="hetero_rep", user_id=identity, sync_types=["results"])
+    country = request.args.get("country", "").strip()
+    rows = hetero_points_leaderboard(country=country)
+    own = next((row for row in rows if row["id"] == identity), None)
+    return {
+        "filters": {"country": country},
+        "countries": countries_payload(),
+        "own": own,
+        "mr_rankings": rows,
+    }
+
+
+@mr_bp.get("/rep/farmacist-standing")
+@hetero_rep_required
+def rep_farmacist_standing():
+    identity = int(get_jwt_identity())
+    data = hetero_rep_participation_performance(identity)
+    return {"leaderboard": data["farmacist_standings"]}
+
+
+def countries_payload():
+    return [row.name for row in Country.query.filter_by(is_active=True).order_by(Country.name.asc()).all()]
