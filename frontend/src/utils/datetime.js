@@ -9,6 +9,23 @@ export function formatDateTime(value) {
   }).format(date);
 }
 
+export function formatDate(value) {
+  if (!value) return "TBA";
+  const normalizedValue = normalizeUtcValue(value);
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) return "TBA";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+  }).format(date);
+}
+
+export function addHours(value, hours) {
+  const normalizedValue = normalizeUtcValue(value);
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getTime() + hours * 3600000);
+}
+
 function normalizeUtcValue(value) {
   if (value instanceof Date) return value;
   if (typeof value !== "string") return value;

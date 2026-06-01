@@ -4,7 +4,7 @@ const rules = [
   ["Correct choice", "+50 points when the selected team or Draw choice matches the final result."],
   ["Edit window", "Choices can be modified until match start time."],
   ["Wrong choice", "No points are deducted."],
-  ["Cancelled match", "Participation points are retained if a match is cancelled. Winner bonus is not awarded."],
+  ["Cancelled match", "Participation points are retained if a match is cancelled."],
 ];
 
 export default function Rules() {

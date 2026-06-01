@@ -21,10 +21,13 @@ export default function MrStanding({
 
   const countries = data?.countries || [];
   const rows = data?.mr_rankings || [];
+  const ownStanding = data?.own || null;
 
   return (
     <div className="space-y-6">
-      {(showIdentity ?? mode === "rep") && <IdentityHeader nameLabel="Participant name" />}
+      {(showIdentity ?? mode === "rep") && (
+        <IdentityHeader nameLabel="Participant name" rank={ownStanding?.rank} points={ownStanding?.total_points} />
+      )}
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="text-3xl font-black">{title || (mode === "rep" ? "My Standing" : "HETERO Staff Standing")}</h1>

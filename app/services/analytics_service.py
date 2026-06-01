@@ -52,6 +52,7 @@ def mr_participation_rankings(country=None, limit=500):
         reps_query = reps_query.filter(Participant.country == country)
     reps = reps_query.order_by(Participant.country.asc(), Participant.full_name.asc()).all()
     rows = []
+    flags = country_flag_map()
     for rep in reps:
         pharmacists = Participant.query.filter(
             Participant.participant_type.in_(PHARMACY_TYPES),
@@ -69,7 +70,7 @@ def mr_participation_rankings(country=None, limit=500):
                 "full_name": rep.full_name,
                 "mobile_number": rep.mobile_number,
                 "country": rep.country,
-                "country_flag_url": country_flag_map().get(rep.country),
+                "country_flag_url": flags.get(rep.country),
                 "enrollments": len(pharmacists),
                 "participations": participations,
                 "avg_participations_per_farmacist": round(participations / max(len(pharmacists), 1), 1),
@@ -84,29 +85,36 @@ def mr_country_rankings():
     countries = [
         row[0]
         for row in db.session.query(Participant.country)
-        .filter(Participant.participant_type.in_(HETERO_TYPES), Participant.country.isnot(None), Participant.country != "")
+        .filter(Participant.participant_type.in_(PHARMACY_TYPES), Participant.country.isnot(None), Participant.country != "")
         .distinct()
         .all()
     ]
     flags = country_flag_map()
     for country in countries:
-        country_mrs = mr_participation_rankings(country=country, limit=100000)
-        enrolled_mrs = len(country_mrs)
-        total_participations = sum(row["participations"] for row in country_mrs)
+        pharmacist_ids = [
+            row[0]
+            for row in db.session.query(Participant.id)
+            .filter(Participant.participant_type.in_(PHARMACY_TYPES), Participant.country == country)
+            .all()
+        ]
+        total_enrollments = len(pharmacist_ids)
+        total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
+        avg_participations = round(total_participations / max(total_enrollments, 1), 1)
         rows.append(
             {
                 "country": country,
                 "country_flag_url": flags.get(country),
-                "mrs": enrolled_mrs,
+                "enrollments": total_enrollments,
                 "participations": total_participations,
-                "score": round(total_participations / max(enrolled_mrs, 1), 1),
+                "score": avg_participations,
+                "avg_participations": avg_participations,
             }
         )
     ranked = sorted(rows, key=lambda row: (row["score"], row["participations"], row["country"]), reverse=True)
     return apply_dense_ranks(ranked, "score")
 
 
-def hetero_rep_participation_performance(rep_id):
+def hetero_rep_participation_performance(rep_id, country=None):
     rep = db.session.get(Participant, rep_id)
     pharmacists = Participant.query.filter(
         Participant.participant_type.in_(PHARMACY_TYPES),
@@ -116,8 +124,17 @@ def hetero_rep_participation_performance(rep_id):
     summary = prediction_summary_for_participants(pharmacist_ids)
     country_rankings = mr_participation_rankings(country=rep.country)
     global_rankings = mr_participation_rankings()
+    filtered_rankings = mr_participation_rankings(country=country) if country else global_rankings
     own_global_rank = next((row["rank"] for row in global_rankings if row["id"] == rep.id), None)
     own_country_rank = next((row["rank"] for row in country_rankings if row["id"] == rep.id), None)
+    countries = [
+        row[0]
+        for row in db.session.query(Participant.country)
+        .filter(Participant.participant_type.in_(HETERO_TYPES), Participant.country.isnot(None), Participant.country != "")
+        .distinct()
+        .order_by(Participant.country.asc())
+        .all()
+    ]
     return {
         "representative": rep.to_dict(include_private=True),
         "summary": {
@@ -129,6 +146,10 @@ def hetero_rep_participation_performance(rep_id):
             "global_rank": own_global_rank,
             "country_rank": own_country_rank,
         },
+        "filters": {"country": country or ""},
+        "countries": countries,
+        "mr_rankings": filtered_rankings,
+        "country_rankings": mr_country_rankings(),
         "top_global_representatives": global_rankings[:10],
         "top_country_representatives": country_rankings[:10],
         "farmacist_standings": leaderboard(country=rep.country, medical_rep_mobile_number=rep.mobile_number, limit=100),
@@ -259,6 +280,8 @@ def favorite_drug_summary(limit=8, participant_ids=None):
 
 def participant_performance(participant_id):
     participant = db.session.get(Participant, participant_id)
+    if not participant:
+        return {"message": "Participant not found."}, 404
     predictions = Prediction.query.filter_by(participant_id=participant_id).order_by(Prediction.updated_at.desc()).all()
     correct = sum(1 for item in predictions if item.is_correct is True)
     wrong = sum(1 for item in predictions if item.is_correct is False)

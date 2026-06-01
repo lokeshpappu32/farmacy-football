@@ -27,11 +27,11 @@ export default function LeaderboardList({ rows = [] }) {
           }`}
         >
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-black/40 text-lg font-black text-gold md:h-14 md:w-14">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black/40 text-lg font-black text-gold md:h-16 md:w-16">
               {row.rank <= 3 ? (
-                <span className="relative inline-flex h-9 w-9 items-center justify-center">
-                  <img src="/images/cup_18104567.svg" alt={`Rank ${row.rank}`} className="h-8 w-8 object-contain md:h-9 md:w-9" />
-                  <span className="absolute inset-0 flex items-center justify-center pt-1 text-base font-black text-red-600 drop-shadow-[0_0_8px_rgba(239,68,68,.95)] md:text-lg">
+                <span className="flex flex-col items-center justify-center leading-none">
+                  <img src="/images/cup_18104567.svg" alt={`Rank ${row.rank}`} className="h-8 w-8 object-contain drop-shadow-[0_0_10px_rgba(250,204,21,.55)] md:h-9 md:w-9" />
+                  <span className="-mt-0.5 text-sm font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] md:text-base">
                     {row.rank}
                   </span>
                 </span>

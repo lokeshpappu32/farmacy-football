@@ -384,7 +384,9 @@ def filtered_users_query():
     if country:
         query = query.filter(Participant.country == country)
     if participant_type:
-        if participant_type == "farmacy_head_supervisor":
+        if participant_type == "all_farmacists":
+            query = query.filter(Participant.participant_type.in_(PHARMACY_TYPES))
+        elif participant_type == "farmacy_head_supervisor":
             query = query.filter(Participant.participant_type.in_({"farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor"}))
         elif participant_type == "hetero_representative_staff":
             query = query.filter(Participant.participant_type.in_(HETERO_TYPES))
@@ -395,6 +397,7 @@ def filtered_users_query():
 
 def participant_type_options():
     return [
+        {"value": "all_farmacists", "label": "All Farmacists"},
         {"value": "farmacy_owner", "label": "Farmacy Owner"},
         {"value": "farmacy_head_supervisor", "label": "Farmacy Head / Supervisor"},
         {"value": "farmacy_sales_staff", "label": "Farmacy Sales Staff"},
