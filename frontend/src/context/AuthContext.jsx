@@ -1,12 +1,13 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import api from "../services/api";
+import { rememberSelectedCountry } from "../utils/language";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const storedRole = localStorage.getItem("ff_role");
   const storedToken = localStorage.getItem("ff_token");
-  const hasSupportedRole = ["admin", "super_admin", "participant"].includes(storedRole);
+  const hasSupportedRole = ["admin", "super_admin", "participant", "hetero_rep"].includes(storedRole);
   if (storedRole && !hasSupportedRole) {
     ["ff_token", "ff_role", "ff_participant", "ff_mr"].forEach((key) => localStorage.removeItem(key));
   }
@@ -24,6 +25,7 @@ export function AuthProvider({ children }) {
     if (data.participant) {
       localStorage.setItem("ff_participant", JSON.stringify(data.participant));
       setParticipant(data.participant);
+      rememberSelectedCountry(data.participant.country);
     }
   };
 

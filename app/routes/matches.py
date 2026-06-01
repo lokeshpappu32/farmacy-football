@@ -117,7 +117,7 @@ def recent_match_announcements(participant_id, limit=2):
         match = prediction.match
         if match.status == "cancelled":
             update_type = "cancel_match"
-            text = f"Match cancelled: {match.team1} vs {match.team2}. Participation rewards reversed."
+            text = f"Match cancelled: {match.team1} vs {match.team2}. Participation points are retained."
         elif match.winner_team == "Draw":
             update_type = "draw_match"
             text = f"Result updated: {match.team1} vs {match.team2} ended in a draw. Draw predictions received +50 bonus."

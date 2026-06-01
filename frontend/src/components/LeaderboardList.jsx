@@ -3,10 +3,12 @@ import { motion } from "framer-motion";
 const participantTypeLabels = {
   farmacist: "Farmacist",
   farmacy_owner: "Farmacy Owner",
+  farmacy_head_supervisor: "Farmacy Head / Supervisor",
   farmacy_head: "Farmacy Head",
   farmacy_supervisor: "Farmacy Supervisor",
   farmacy_sales_staff: "Farmacy Sales Staff",
   medical_rep: "HETERO Representative",
+  hetero_representative_staff: "HETERO Representative / Staff",
   hetero_staff: "HETERO Staff",
   hetero_representative: "HETERO Representative",
 };
@@ -26,7 +28,14 @@ export default function LeaderboardList({ rows = [] }) {
         >
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-black/40 text-lg font-black text-gold md:h-14 md:w-14">
-              {row.rank <= 3 ? <img src="/images/cup_18104567.svg" alt={`Rank ${row.rank}`} className="h-8 w-8 object-contain md:h-9 md:w-9" /> : row.rank}
+              {row.rank <= 3 ? (
+                <span className="relative inline-flex h-9 w-9 items-center justify-center">
+                  <img src="/images/cup_18104567.svg" alt={`Rank ${row.rank}`} className="h-8 w-8 object-contain md:h-9 md:w-9" />
+                  <span className="absolute inset-0 flex items-center justify-center pt-1 text-base font-black text-red-600 drop-shadow-[0_0_8px_rgba(239,68,68,.95)] md:text-lg">
+                    {row.rank}
+                  </span>
+                </span>
+              ) : row.rank}
             </div>
             <div className="min-w-0">
               <div className="truncate text-lg font-black md:text-2xl">{row.full_name}</div>

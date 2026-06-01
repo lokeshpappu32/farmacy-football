@@ -1,28 +1,42 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import AppFooter from "../components/AppFooter";
 import FootballLogo from "../components/FootballLogo";
 import { useAuth } from "../context/AuthContext";
 import { homeForRole } from "../utils/auth";
 
 const pharmacyOptions = [
   ["farmacy_owner", "Farmacy Owner"],
-  ["farmacy_head", "Farmacy Head"],
-  ["farmacy_supervisor", "Farmacy Supervisor"],
+  ["farmacy_head_supervisor", "Farmacy Head / Supervisor"],
   ["farmacy_sales_staff", "Farmacy Sales Staff"],
 ];
 const heteroOptions = [
-  ["hetero_staff", "Hetero Staff"],
-  ["hetero_representative", "Hetero Representative"],
+  ["hetero_representative_staff", "Hetero Representative / Staff"],
 ];
 const visitorOptions = [...pharmacyOptions, ...heteroOptions].map(([value]) => value);
+const visitorAliases = {
+  farmacy_head: "farmacy_head_supervisor",
+  pharmacy_head: "farmacy_head_supervisor",
+  farmacy_supervisor: "farmacy_head_supervisor",
+  pharmacy_supervisor: "farmacy_head_supervisor",
+  hetero_staff: "hetero_representative_staff",
+  hetero_representative: "hetero_representative_staff",
+  hetero_rep: "hetero_representative_staff",
+  medical_rep: "hetero_representative_staff",
+  representative: "hetero_representative_staff",
+  staff: "hetero_representative_staff",
+  rep: "hetero_representative_staff",
+  mr: "hetero_representative_staff",
+};
 
 export default function Home() {
   const [params] = useSearchParams();
   const [visitorType, setVisitorType] = useState("farmacy_owner");
   const navigate = useNavigate();
   const { isAuthed, role } = useAuth();
-  const visitorParam = params.get("participant_type");
-  const selectedType = visitorOptions.includes(visitorParam) ? visitorParam : visitorType;
+  const visitorParam = (params.get("participant_type") || "").toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
+  const normalizedVisitorParam = visitorAliases[visitorParam] || visitorParam;
+  const selectedType = visitorOptions.includes(normalizedVisitorParam) ? normalizedVisitorParam : visitorType;
   const enrollUrl = `/enroll?participant_type=${encodeURIComponent(selectedType)}`;
 
   useEffect(() => {
@@ -51,7 +65,7 @@ export default function Home() {
           <div className="mt-14 grid w-full max-w-4xl gap-8 text-left text-sm font-semibold uppercase tracking-wide sm:text-base lg:grid-cols-[1fr_auto_1fr] lg:text-lg">
             <RoleGroup title="Farmacist Type" options={pharmacyOptions} selectedType={selectedType} onChange={setVisitorType} />
             <div className="hidden w-px bg-white/70 lg:block" />
-            <RoleGroup title="Hetero Staff" options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
+            <RoleGroup title="Hetero Representative / Staff" options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
           </div>
 
           <Link
@@ -69,6 +83,7 @@ export default function Home() {
           Login - if you are Admin
         </Link>
       </section>
+      <AppFooter />
     </main>
   );
 }

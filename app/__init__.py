@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env", override=True)
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
@@ -26,10 +26,48 @@ def create_app(config_class=Config):
     limiter.init_app(app)
 
     register_blueprints(app)
+    register_football_sync_hook(app)
     register_error_handlers(app)
     register_frontend_routes(app)
 
     return app
+
+
+def register_football_sync_hook(app):
+    @app.before_request
+    def sync_football_data_on_page_activity():
+        if request.method != "GET":
+            return None
+
+        path = request.path or ""
+        ignored_prefixes = (
+            "/assets/",
+            "/fonts/",
+            "/images/",
+            "/favicon",
+            "/hetero-logo",
+            "/manifest",
+            "/.well-known/",
+        )
+        if path.startswith(ignored_prefixes) or "." in Path(path).name:
+            return None
+
+        api_exclusions = (
+            "/api/countries",
+            "/api/admin/sync-matches",
+        )
+        if path.startswith("/api/") and path.startswith(api_exclusions):
+            return None
+
+        try:
+            from app.services.footballdata_io_service import maybe_sync_football_data
+
+            page = path.strip("/").replace("/", "_") or "home"
+            role = "page_open" if not path.startswith("/api/") else "api_get"
+            maybe_sync_football_data(page, role=role, sync_types=["upcoming", "live", "results"])
+        except Exception:
+            app.logger.exception("Football API smart sync hook failed")
+        return None
 
 
 def register_error_handlers(app):

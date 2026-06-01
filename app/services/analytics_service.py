@@ -2,9 +2,20 @@ from sqlalchemy import case, func
 
 from app.extensions import db
 from app.models import Country, Match, Participant, PointsHistory, Prediction
+from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 
-PHARMACY_TYPES = {"farmacist", "farmacy_owner", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"}
-HETERO_TYPES = {"medical_rep", "hetero_rep", "hetero_staff", "hetero_representative", "representative", "rep", "mr"}
+
+def apply_dense_ranks(rows, score_key):
+    ranked_rows = []
+    previous_score = None
+    current_rank = 0
+    for row in rows:
+        score = row.get(score_key) or 0
+        if score != previous_score:
+            current_rank += 1
+            previous_score = score
+        ranked_rows.append({**row, "rank": current_rank})
+    return ranked_rows
 
 
 def country_flag_map():
@@ -21,10 +32,18 @@ def leaderboard(country=None, medical_rep_name=None, medical_rep_mobile_number=N
         query = query.filter(Participant.medical_rep_name == medical_rep_name)
     users = query.order_by(Participant.total_points.desc(), Participant.created_at.asc()).limit(limit).all()
     flags = country_flag_map()
-    return [
-        {**user.to_dict(), "country_flag_url": flags.get(user.country), "rank": index + 1}
-        for index, user in enumerate(users)
-    ]
+    rows = [{**user.to_dict(), "country_flag_url": flags.get(user.country)} for user in users]
+    return apply_dense_ranks(rows, "total_points")
+
+
+def hetero_points_leaderboard(country=None, limit=500):
+    query = Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES))
+    if country:
+        query = query.filter(Participant.country == country)
+    users = query.order_by(Participant.total_points.desc(), Participant.created_at.asc()).limit(limit).all()
+    flags = country_flag_map()
+    rows = [{**user.to_dict(), "country_flag_url": flags.get(user.country)} for user in users]
+    return apply_dense_ranks(rows, "total_points")
 
 
 def mr_participation_rankings(country=None, limit=500):
@@ -57,7 +76,7 @@ def mr_participation_rankings(country=None, limit=500):
             }
         )
     ranked = sorted(rows, key=lambda row: (row["participations"], row["enrollments"], row["full_name"]), reverse=True)
-    return [{**row, "rank": index + 1} for index, row in enumerate(ranked[:limit])]
+    return apply_dense_ranks(ranked[:limit], "participations")
 
 
 def mr_country_rankings():
@@ -84,7 +103,36 @@ def mr_country_rankings():
             }
         )
     ranked = sorted(rows, key=lambda row: (row["score"], row["participations"], row["country"]), reverse=True)
-    return [{**row, "rank": index + 1} for index, row in enumerate(ranked)]
+    return apply_dense_ranks(ranked, "score")
+
+
+def hetero_rep_participation_performance(rep_id):
+    rep = db.session.get(Participant, rep_id)
+    pharmacists = Participant.query.filter(
+        Participant.participant_type.in_(PHARMACY_TYPES),
+        Participant.medical_rep_mobile_number == rep.mobile_number,
+    ).order_by(Participant.total_points.desc(), Participant.created_at.asc()).all()
+    pharmacist_ids = [user.id for user in pharmacists]
+    summary = prediction_summary_for_participants(pharmacist_ids)
+    country_rankings = mr_participation_rankings(country=rep.country)
+    global_rankings = mr_participation_rankings()
+    own_global_rank = next((row["rank"] for row in global_rankings if row["id"] == rep.id), None)
+    own_country_rank = next((row["rank"] for row in country_rankings if row["id"] == rep.id), None)
+    return {
+        "representative": rep.to_dict(include_private=True),
+        "summary": {
+            "enrollments": len(pharmacists),
+            "participations": summary["predictions"],
+            "active_farmacists": len({row.participant_id for row in Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).all()}) if pharmacist_ids else 0,
+            "accuracy": summary["accuracy"],
+            "participation_rate": summary["participation_rate"],
+            "global_rank": own_global_rank,
+            "country_rank": own_country_rank,
+        },
+        "top_global_representatives": global_rankings[:10],
+        "top_country_representatives": country_rankings[:10],
+        "farmacist_standings": leaderboard(country=rep.country, medical_rep_mobile_number=rep.mobile_number, limit=100),
+    }
 
 
 def mr_dashboard_analytics(country=None):
