@@ -70,7 +70,7 @@ The Render build command installs Python packages, installs frontend packages, b
 
 ## Azure App Service Deployment
 
-Use an Azure **Linux** App Service with Python 3.11 and an Azure Database for PostgreSQL flexible server.
+Use an Azure **Linux** App Service with Python 3.11 and Azure SQL Database.
 
 For full test/live setup instructions, see [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md).
 
@@ -91,7 +91,8 @@ bash startup.sh
 
 Recommended Azure application settings:
 
-- `DATABASE_URL`: Azure PostgreSQL connection string, for example `postgresql://USER:PASSWORD@HOST.postgres.database.azure.com:5432/farmacy_football?sslmode=require`
+- `AZURE_SQL_CONNECTION_STRING`: Azure SQL ODBC connection string, for example `Driver={ODBC Driver 18 for SQL Server};Server=tcp:YOUR-SERVER.database.windows.net,1433;Database=YOUR-DB;Uid=YOUR-USER;Pwd=YOUR-PASSWORD;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;`
+- Leave `DATABASE_URL` unset for Azure SQL. If both are set, `AZURE_SQL_CONNECTION_STRING` takes priority.
 - `ADMIN_SECRET_CODE`: your private admin login code
 - `SECRET_KEY`: a long random secret
 - `JWT_SECRET_KEY`: another long random secret

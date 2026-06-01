@@ -4,6 +4,7 @@ import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 
 const defaultParticipantTypes = [
+  { value: "all_farmacists", label: "All Farmacists" },
   { value: "farmacy_owner", label: "Farmacy Owner" },
   { value: "farmacy_head_supervisor", label: "Farmacy Head / Supervisor" },
   { value: "farmacy_sales_staff", label: "Farmacy Sales Staff" },
@@ -13,6 +14,8 @@ const defaultParticipantTypes = [
 export default function AdminUsers() {
   const [filters, setFilters] = useState({ q: "", country: "", participant_type: "" });
   const [options, setOptions] = useState({ countries: [], participant_types: [] });
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
   const { data, loading, error, refresh } = useApi(async () => {
     const params = new URLSearchParams();
     if (filters.q) params.set("q", filters.q);
@@ -33,20 +36,33 @@ export default function AdminUsers() {
       .catch(() => {});
   }, [filters.country]);
   const updateFilter = (key, value) => {
+    setPage(1);
     setFilters((current) => ({
       ...current,
       [key]: value,
     }));
   };
   const clearFilters = () => {
+    setPage(1);
     setFilters({ q: "", country: "", participant_type: "" });
   };
   const users = filterUsers(data?.users || [], filters);
+  const totalPages = Math.max(Math.ceil(users.length / pageSize), 1);
+  const visibleUsers = users.slice((page - 1) * pageSize, page * pageSize);
   const countries = uniqueOptions([...(options.countries || []), ...(data?.countries || []), ...(data?.users || []).map((user) => user.country)]);
   const participantTypes = options.participant_types?.length ? options.participant_types : defaultParticipantTypes;
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
   const exportCsv = async () => {
-    const csv = toCsv(users);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const params = new URLSearchParams();
+    if (filters.q) params.set("q", filters.q);
+    if (filters.country) params.set("country", filters.country);
+    if (filters.participant_type) params.set("participant_type", filters.participant_type);
+    const response = await api.get(`/admin/export/users.csv${params.toString() ? `?${params.toString()}` : ""}`, {
+      responseType: "blob",
+    });
+    const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -73,12 +89,13 @@ export default function AdminUsers() {
               <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
                 {users.length} users
               </span>
+              <PaginationControls page={page} totalPages={totalPages} onPage={setPage} />
             </div>
             <div className="scroll-panel max-h-[680px] overflow-auto pr-2">
               <table className="w-full min-w-[860px] text-left text-sm">
                 <thead className="sticky top-0 bg-zinc-950 text-white/55"><tr><th className="p-3">Name</th><th>Mobile</th><th>Email</th><th>Country</th><th>HETERO Rep / Staff</th><th>Participant Type</th><th>Points</th></tr></thead>
                 <tbody>
-                  {users.map((user) => (
+                  {visibleUsers.map((user) => (
                     <tr key={user.id} className="border-t border-white/10">
                       <td className="p-3 font-bold">{user.full_name}</td><td>{user.mobile_number}</td><td>{user.email}</td><td>{user.country}</td><td>{user.medical_rep_name || "-"}</td><td>{typeLabel(user.participant_type)}</td><td className="font-black text-gold">{user.total_points}</td>
                     </tr>
@@ -90,6 +107,9 @@ export default function AdminUsers() {
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <PaginationControls page={page} totalPages={totalPages} onPage={setPage} />
             </div>
           </>
         )}
@@ -133,9 +153,34 @@ function filterUsers(users, filters) {
 }
 
 function typeMatches(actual, selected) {
+  if (selected === "all_farmacists") return ["farmacist", "farmacy_owner", "farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"].includes(actual);
   if (selected === "farmacy_head_supervisor") return ["farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor"].includes(actual);
   if (selected === "hetero_representative_staff") return ["hetero_representative_staff", "hetero_staff", "hetero_representative", "medical_rep"].includes(actual);
   return actual === selected;
+}
+
+function PaginationControls({ page, totalPages, onPage }) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+      >
+        Prev
+      </button>
+      <span className="min-w-14 text-center text-xs font-bold text-white/60">
+        {page}/{totalPages}
+      </span>
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={page >= totalPages}
+        onClick={() => onPage(page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  );
 }
 
 function toCsv(users) {

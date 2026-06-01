@@ -37,6 +37,7 @@ def ensure_schema_columns():
     if not inspector.has_table("participants"):
         return
     participant_columns = {column["name"] for column in inspector.get_columns("participants")}
+    add_column = "ADD" if db.engine.dialect.name == "mssql" else "ADD COLUMN"
     additions = {
         "participant_type": "VARCHAR(40) NOT NULL DEFAULT 'farmacy_owner'",
         "pharmacy_name": "VARCHAR(180) NULL",
@@ -47,7 +48,7 @@ def ensure_schema_columns():
     with db.engine.begin() as connection:
         for column, definition in additions.items():
             if column not in participant_columns:
-                connection.execute(text(f"ALTER TABLE participants ADD COLUMN {column} {definition}"))
+                connection.execute(text(f"ALTER TABLE participants {add_column} {column} {definition}"))
 
 
 app = create_app()

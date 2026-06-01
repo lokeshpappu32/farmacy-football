@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import LeaderboardList from "../components/LeaderboardList";
 import IdentityHeader from "../components/IdentityHeader";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import { useAuth } from "../context/AuthContext";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 
@@ -11,6 +12,7 @@ export default function Leaderboard({
   identityLabel = "Name of the Farmacist",
   showIdentity = true,
 }) {
+  const { participant } = useAuth();
   const [filters, setFilters] = useState({ country: "", medical_rep_mobile_number: "" });
   const [options, setOptions] = useState({ countries: [], medical_reps: [] });
   const { data, loading, error, refresh } = useApi(async () => {
@@ -30,11 +32,12 @@ export default function Leaderboard({
   }, [filters.country]);
 
   const rows = data?.leaderboard || [];
+  const ownStanding = rows.find((row) => row.id === participant?.id);
   const countries = uniqueOptions([...(options.countries || []), ...(data?.countries || []), ...rows.map((row) => row.country)]);
   const medicalReps = uniqueRepOptions([...(options.medical_reps || []), ...(data?.medical_reps || [])]);
   return (
     <div className="space-y-6">
-      {showIdentity && <IdentityHeader nameLabel={identityLabel} />}
+      {showIdentity && <IdentityHeader nameLabel={identityLabel} rank={ownStanding?.rank} points={ownStanding?.total_points} />}
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="text-3xl font-black">{title}</h1>

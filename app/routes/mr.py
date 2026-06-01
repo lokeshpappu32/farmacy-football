@@ -34,7 +34,8 @@ def mr_standing():
 def rep_performance():
     identity = int(get_jwt_identity())
     maybe_sync_football_data("rep_performance", role="hetero_rep", user_id=identity, sync_types=["results"])
-    return hetero_rep_participation_performance(identity)
+    country = request.args.get("country", "").strip()
+    return hetero_rep_participation_performance(identity, country=country)
 
 
 @mr_bp.get("/rep/standing")

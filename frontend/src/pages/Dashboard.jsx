@@ -9,7 +9,7 @@ import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 import IdentityHeader from "../components/IdentityHeader";
 import { useAuth } from "../context/AuthContext";
-import { formatDateTime } from "../utils/datetime";
+import { addHours, formatDate, formatDateTime } from "../utils/datetime";
 
 export default function Dashboard() {
   const { role } = useAuth();
@@ -49,6 +49,7 @@ export default function Dashboard() {
 
   const matches = data?.matches || [];
   const awaitingResultMatches = data?.awaiting_result_matches || [];
+  const nextMatch = data?.next_match;
 
   return (
     <div className="space-y-6">
@@ -67,7 +68,7 @@ export default function Dashboard() {
       </div> */}
 
       {matches.length === 0 ? (
-        <div className="glass rounded-3xl p-8 text-center text-xl font-bold">No matches are open yet.</div>
+        <NoOpenMatches nextMatch={nextMatch} />
       ) : (
         <div className="grid gap-6">
           {matches.map((match, index) => (
@@ -91,6 +92,24 @@ export default function Dashboard() {
         onDraft={updateDraft}
         onSubmit={submit}
       />
+    </div>
+  );
+}
+
+function NoOpenMatches({ nextMatch }) {
+  const predictionOpenDate = nextMatch?.match_datetime ? addHours(nextMatch.match_datetime, -48) : null;
+
+  return (
+    <div className="glass rounded-3xl p-8 text-center">
+      <div className="text-xl font-black">No matches are open yet.</div>
+      {nextMatch ? (
+        <div className="mx-auto mt-4 max-w-2xl space-y-2 text-base font-bold text-white/75 md:text-lg">
+          <p>The first match is happening on {formatDate(nextMatch.match_datetime)}.</p>
+          <p>You can start choosing your favourite team on {formatDate(predictionOpenDate)}.</p>
+        </div>
+      ) : (
+        <p className="mt-3 text-base font-bold text-white/65">Upcoming match details will be available soon.</p>
+      )}
     </div>
   );
 }

@@ -46,6 +46,7 @@ def dashboard_matches():
         for match in open_matches
         if now < as_utc(match.match_datetime) <= visible_until
     ]
+    next_match = next((match for match in open_matches if as_utc(match.match_datetime) > now), None)
     awaiting_matches = [
         match
         for match in open_matches
@@ -64,6 +65,7 @@ def dashboard_matches():
 
     return {
         "matches": [match.to_dict() for match in matches],
+        "next_match": next_match.to_dict() if next_match else None,
         "awaiting_result_matches": [match.to_dict() for match in awaiting_matches],
         "predictions": predictions,
         "window_hours": 48,
