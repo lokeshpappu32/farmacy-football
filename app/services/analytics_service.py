@@ -155,6 +155,7 @@ def mr_dashboard_analytics(country=None):
             "total_participations": total_participations,
             "total_mrs": Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES)).count(),
             "active_mrs": sum(1 for row in all_rankings if row["participations"] > 0),
+            "avg_participations_per_enrollment": round(total_participations / max(total_enrollments, 1), 1),
         },
         "filters": {"country": country or ""},
         "countries": countries,

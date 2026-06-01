@@ -45,24 +45,24 @@ export default function Home() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden bg-cover bg-center text-white"
+      className="relative flex h-screen flex-col overflow-hidden bg-cover bg-center text-white"
       style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
       <div className="absolute inset-0 bg-black/10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.08)_42%,rgba(0,0,0,0.22)_100%)]" />
       <div className="absolute inset-0 bg-emerald-950/12" />
 
-      <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center px-5 py-10 text-center">
+      <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-4 text-center sm:py-5">
         <img
           src="/hetero-logo.png"
           alt="Hetero"
-          className="mt-2 h-24 w-40 object-contain mix-blend-screen sm:h-32 sm:w-52"
+          className="mt-1 h-16 w-32 object-contain mix-blend-screen sm:h-20 sm:w-40 lg:h-24 lg:w-48"
         />
 
-        <div className="flex flex-1 flex-col items-center justify-center pb-20 pt-10 sm:pb-24">
-          <FootballLogo />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-10 pt-4 sm:pb-12 sm:pt-5">
+          <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-100" />
 
-          <div className="mt-14 grid w-full max-w-4xl gap-8 text-left text-sm font-semibold uppercase tracking-wide sm:text-base lg:grid-cols-[1fr_auto_1fr] lg:text-lg">
+          <div className="mt-6 grid w-full max-w-4xl gap-5 text-left text-xs font-semibold uppercase tracking-wide sm:mt-8 sm:text-sm lg:grid-cols-[1fr_auto_1fr] lg:text-base">
             <RoleGroup title="Farmacist Type" options={pharmacyOptions} selectedType={selectedType} onChange={setVisitorType} />
             <div className="hidden w-px bg-white/70 lg:block" />
             <RoleGroup title="Hetero Representative / Staff" options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
@@ -70,7 +70,7 @@ export default function Home() {
 
           <Link
             to={enrollUrl}
-            className="mt-10 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-12 py-4 text-2xl font-black uppercase leading-none text-white shadow-[0_14px_30px_rgba(0,0,0,0.35)] transition hover:scale-[1.02] hover:brightness-110"
+            className="mt-6 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-10 py-3 text-xl font-black uppercase leading-none text-white shadow-[0_14px_30px_rgba(0,0,0,0.35)] transition hover:scale-[1.02] hover:brightness-110 sm:mt-8 sm:px-12 sm:py-4 sm:text-2xl"
           >
             Enroll
           </Link>
@@ -78,12 +78,12 @@ export default function Home() {
 
         <Link
           to="/login"
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-base font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:bottom-4 sm:text-base"
         >
           Login - if you are Admin
         </Link>
       </section>
-      <AppFooter />
+      <AppFooter compact />
     </main>
   );
 }

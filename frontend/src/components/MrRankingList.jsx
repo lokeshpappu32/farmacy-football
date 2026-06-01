@@ -32,7 +32,9 @@ export default function MrRankingList({ rows = [], showCountry = true, scroll = 
                   <span>{row.country}</span>
                 </div>
               )}
-              <div className="mt-1 text-xs text-white/45">{row.enrollments ?? "-"} enrolled farmacists</div>
+              {row.enrollments !== undefined && (
+                <div className="mt-1 text-xs text-white/45">{row.enrollments} enrolled farmacists</div>
+              )}
             </div>
           </div>
           <div className="shrink-0 text-right">
