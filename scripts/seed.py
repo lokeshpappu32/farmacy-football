@@ -217,12 +217,16 @@ def seed_participants():
 def seed_matches():
     now = datetime.now(timezone.utc)
     for team1, team2, day_offset, status, winner in DEMO_MATCHES:
-        match = Match.query.filter_by(team1=team1, team2=team2).first()
+        demo_api_match_id = f"demo-{team1}-{team2}".lower().replace(" ", "-")
+        match = Match.query.filter_by(api_match_id=demo_api_match_id).first()
+        if not match:
+            match = Match.query.filter_by(team1=team1, team2=team2).first()
         match_datetime = now + timedelta(days=day_offset)
         team1_logo = flag_for(team1)
         team2_logo = flag_for(team2)
         if not match:
             match = Match(
+                api_match_id=demo_api_match_id,
                 team1=team1,
                 team2=team2,
                 team1_logo=team1_logo,
@@ -233,6 +237,9 @@ def seed_matches():
             )
             db.session.add(match)
             continue
+        match.api_match_id = demo_api_match_id
+        match.team1 = team1
+        match.team2 = team2
         match.team1_logo = team1_logo
         match.team2_logo = team2_logo
         match.match_datetime = match_datetime
