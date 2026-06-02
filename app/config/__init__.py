@@ -7,37 +7,24 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 def database_uri():
-    azure_sql = azure_sql_connection_string()
-    if azure_sql:
-        if azure_sql.lower().startswith("mssql+pyodbc://"):
-            return azure_sql
-        return f"mssql+pyodbc:///?odbc_connect={quote_plus(normalize_azure_sql_connection_string(azure_sql))}"
-
+    azure_sql = os.getenv("AZURE_SQL_CONNECTION_STRING", "").strip()
     raw_uri = os.getenv("DATABASE_URL", "").strip()
     if raw_uri.startswith("postgres://"):
         return raw_uri.replace("postgres://", "postgresql://", 1)
     if raw_uri:
         return raw_uri
-    return "postgresql://postgres:password@localhost:5432/farmacy_football"
-
-
-def azure_sql_connection_string():
-    explicit = os.getenv("AZURE_SQL_CONNECTION_STRING", "").strip()
-    if explicit:
-        return explicit
-    for prefix in ("SQLAZURECONNSTR_", "SQLCONNSTR_"):
-        for key, value in os.environ.items():
-            if key.startswith(prefix) and value.strip():
-                return value.strip()
-    return ""
-
-
-def normalize_azure_sql_connection_string(value):
-    parts = [part.strip() for part in value.strip().rstrip(";").split(";") if part.strip()]
-    has_driver = any(part.lower().startswith("driver=") for part in parts)
-    if not has_driver:
-        parts.insert(0, "Driver={ODBC Driver 18 for SQL Server}")
-    return ";".join(parts) + ";"
+    if azure_sql:
+        return f"mssql+pyodbc:///?odbc_connect={quote_plus(azure_sql)}"
+    return "mssql+pyodbc:///?odbc_connect=" + quote_plus(
+        "Driver={ODBC Driver 18 for SQL Server};"
+        "Server=tcp:your-server.database.windows.net,1433;"
+        "Database=your-database;"
+        "Uid=your-user;"
+        "Pwd=your-password;"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
+    )
 
 
 class Config:
