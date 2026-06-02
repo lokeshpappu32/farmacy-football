@@ -1,5 +1,6 @@
 const SPANISH_COUNTRY_NAMES = new Set([
   "chile",
+  "colombia",
   "costa rica",
   "dominican republic",
   "el salvador",
@@ -11,7 +12,16 @@ const SPANISH_COUNTRY_NAMES = new Set([
   "peru",
 ]);
 
-const SPANISH_COUNTRY_CODES = new Set(["CL", "CR", "DO", "SV", "GT", "HN", "MX", "NI", "PA", "PE"]);
+const FRENCH_COUNTRY_NAMES = new Set([
+  "cameroon",
+  "cote d'ivoire",
+  "côte d'ivoire",
+  "ivory coast",
+  "senegal",
+]);
+
+const SPANISH_COUNTRY_CODES = new Set(["CL", "CO", "CR", "DO", "SV", "GT", "HN", "MX", "NI", "PA", "PE"]);
+const FRENCH_COUNTRY_CODES = new Set(["CM", "CI", "SN"]);
 
 export function normalizeCountryName(country) {
   return String(country || "")
@@ -24,13 +34,40 @@ export function countryUsesSpanish(country) {
   return SPANISH_COUNTRY_NAMES.has(normalizeCountryName(country));
 }
 
+export function countryUsesFrench(country) {
+  return FRENCH_COUNTRY_NAMES.has(normalizeCountryName(country));
+}
+
 export function countryCodeUsesSpanish(code) {
   return SPANISH_COUNTRY_CODES.has(String(code || "").trim().toUpperCase());
+}
+
+export function countryCodeUsesFrench(code) {
+  return FRENCH_COUNTRY_CODES.has(String(code || "").trim().toUpperCase());
+}
+
+export function languageForCountry(country) {
+  if (countryUsesSpanish(country)) return "es";
+  if (countryUsesFrench(country)) return "fr";
+  return "";
+}
+
+export function languageForCountryCode(code) {
+  if (countryCodeUsesSpanish(code)) return "es";
+  if (countryCodeUsesFrench(code)) return "fr";
+  return "";
 }
 
 export function browserPrefersSpanish() {
   const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
   return languages.some((language) => String(language || "").toLowerCase().startsWith("es"));
+}
+
+export function browserPreferredCampaignLanguage() {
+  const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
+  if (languages.some((language) => String(language || "").toLowerCase().startsWith("es"))) return "es";
+  if (languages.some((language) => String(language || "").toLowerCase().startsWith("fr"))) return "fr";
+  return "";
 }
 
 export function rememberSelectedCountry(country) {

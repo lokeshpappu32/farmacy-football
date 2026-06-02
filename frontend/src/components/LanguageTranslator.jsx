@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  browserPrefersSpanish,
-  countryCodeUsesSpanish,
-  countryUsesSpanish,
+  browserPreferredCampaignLanguage,
+  languageForCountry,
+  languageForCountryCode,
 } from "../utils/language";
 
 const GOOGLE_TRANSLATE_SCRIPT_ID = "google-translate-script";
 const LANGUAGE_OVERRIDE_KEY = "ff_language_override";
+const TARGET_LANGUAGE_KEY = "ff_translation_target";
 
 function setTranslateCookie(language) {
-  const value = language === "es" ? "/en/es" : "/en/en";
+  const value = language && language !== "en" ? `/en/${language}` : "/en/en";
   const expires = new Date();
   expires.setFullYear(expires.getFullYear() + 1);
   document.cookie = `googtrans=${value}; expires=${expires.toUTCString()}; path=/`;
@@ -30,7 +31,15 @@ function readParticipantCountry() {
 
 function chooseLanguageFromStoredCountry() {
   const storedCountry = localStorage.getItem("ff_selected_country") || readParticipantCountry();
-  return countryUsesSpanish(storedCountry) ? "es" : "";
+  return languageForCountry(storedCountry);
+}
+
+function rememberTargetLanguage(language) {
+  if (language && language !== "en") localStorage.setItem(TARGET_LANGUAGE_KEY, language);
+}
+
+function targetLanguage() {
+  return chooseLanguageFromStoredCountry() || localStorage.getItem(TARGET_LANGUAGE_KEY) || "";
 }
 
 function loadGoogleTranslate() {
@@ -40,7 +49,7 @@ function loadGoogleTranslate() {
     window.google.translate.TranslateElement(
       {
         pageLanguage: "en",
-        includedLanguages: "en,es",
+        includedLanguages: "en,es,fr",
         autoDisplay: false,
       },
       "google_translate_element",
@@ -64,10 +73,15 @@ function applyTranslateCombo(language) {
 export default function LanguageTranslator() {
   const location = useLocation();
   const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_OVERRIDE_KEY) || "en");
-  const [spanishEligible, setSpanishEligible] = useState(false);
+  const [translationEligible, setTranslationEligible] = useState(false);
   const isSuperAdminPage = location.pathname.startsWith("/super-admin");
 
-  const label = useMemo(() => (language === "es" ? "Translate to English" : "Traducir a Espanol"), [language]);
+  const label = useMemo(() => {
+    if (language === "es" || language === "fr") return "Translate to English";
+    const target = targetLanguage();
+    if (target === "fr") return "Traduire en francais";
+    return "Traducir a Espanol";
+  }, [language]);
 
   useEffect(() => {
     if (isSuperAdminPage) return;
@@ -82,7 +96,7 @@ export default function LanguageTranslator() {
     }
     const override = localStorage.getItem(LANGUAGE_OVERRIDE_KEY);
     if (override) {
-      setSpanishEligible(override === "es" || Boolean(chooseLanguageFromStoredCountry()));
+      setTranslationEligible(override !== "en" || Boolean(targetLanguage()));
       setLanguage(override);
       setTranslateCookie(override);
       window.setTimeout(() => applyTranslateCombo(override), 900);
@@ -91,18 +105,21 @@ export default function LanguageTranslator() {
 
     const storedLanguage = chooseLanguageFromStoredCountry();
     if (storedLanguage) {
-      setSpanishEligible(true);
-      setLanguage("es");
-      setTranslateCookie("es");
-      window.setTimeout(() => applyTranslateCombo("es"), 900);
+      rememberTargetLanguage(storedLanguage);
+      setTranslationEligible(true);
+      setLanguage(storedLanguage);
+      setTranslateCookie(storedLanguage);
+      window.setTimeout(() => applyTranslateCombo(storedLanguage), 900);
       return undefined;
     }
 
-    if (browserPrefersSpanish()) {
-      setSpanishEligible(true);
-      setLanguage("es");
-      setTranslateCookie("es");
-      window.setTimeout(() => applyTranslateCombo("es"), 900);
+    const browserLanguage = browserPreferredCampaignLanguage();
+    if (browserLanguage) {
+      rememberTargetLanguage(browserLanguage);
+      setTranslationEligible(true);
+      setLanguage(browserLanguage);
+      setTranslateCookie(browserLanguage);
+      window.setTimeout(() => applyTranslateCombo(browserLanguage), 900);
       return undefined;
     }
 
@@ -111,11 +128,13 @@ export default function LanguageTranslator() {
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
-        if (countryUsesSpanish(data.country_name) || countryCodeUsesSpanish(data.country)) {
-          setSpanishEligible(true);
-          setLanguage("es");
-          setTranslateCookie("es");
-          window.setTimeout(() => applyTranslateCombo("es"), 900);
+        const detectedLanguage = languageForCountry(data.country_name) || languageForCountryCode(data.country);
+        if (detectedLanguage) {
+          rememberTargetLanguage(detectedLanguage);
+          setTranslationEligible(true);
+          setLanguage(detectedLanguage);
+          setTranslateCookie(detectedLanguage);
+          window.setTimeout(() => applyTranslateCombo(detectedLanguage), 900);
         }
       })
       .catch(() => {});
@@ -128,12 +147,14 @@ export default function LanguageTranslator() {
   useEffect(() => {
     if (isSuperAdminPage) return undefined;
     const onCountrySelected = (event) => {
-      if (countryUsesSpanish(event.detail?.country)) {
-        setSpanishEligible(true);
+      const selectedLanguage = languageForCountry(event.detail?.country);
+      if (selectedLanguage) {
+        rememberTargetLanguage(selectedLanguage);
+        setTranslationEligible(true);
         if (localStorage.getItem(LANGUAGE_OVERRIDE_KEY)) return;
-        setLanguage("es");
-        setTranslateCookie("es");
-        window.setTimeout(() => applyTranslateCombo("es"), 500);
+        setLanguage(selectedLanguage);
+        setTranslateCookie(selectedLanguage);
+        window.setTimeout(() => applyTranslateCombo(selectedLanguage), 500);
       }
     };
     window.addEventListener("ff-country-selected", onCountrySelected);
@@ -141,10 +162,11 @@ export default function LanguageTranslator() {
   }, [isSuperAdminPage]);
 
   const switchLanguage = () => {
-    const nextLanguage = language === "es" ? "en" : "es";
+    const target = targetLanguage() || "es";
+    const nextLanguage = language === "en" ? target : "en";
     localStorage.setItem(LANGUAGE_OVERRIDE_KEY, nextLanguage);
     setLanguage(nextLanguage);
-    setSpanishEligible(true);
+    setTranslationEligible(true);
     setTranslateCookie(nextLanguage);
     window.setTimeout(() => window.location.reload(), 80);
   };
@@ -153,7 +175,7 @@ export default function LanguageTranslator() {
     return <div id="google_translate_element" className="google-translate-hidden" />;
   }
 
-  if (!spanishEligible && language !== "es") {
+  if (!translationEligible && language === "en") {
     return <div id="google_translate_element" className="google-translate-hidden" />;
   }
 
