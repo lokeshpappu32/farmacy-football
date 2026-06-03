@@ -69,7 +69,15 @@ export default function AppShell({ mode = "user" }) {
         {open && (
           <div className="mx-4 space-y-2 rounded-2xl border border-white/10 bg-black/50 px-4 py-3 backdrop-blur-xl md:hidden">
             {links.map(([label, path]) => (
-              <NavLink key={path} to={path} onClick={() => setOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-bold text-white/80 hover:bg-white/10">
+              <NavLink
+                key={path}
+                to={path}
+                end
+                onClick={() => setOpen(false)}
+                className={({ isActive }) => `block rounded-xl px-3 py-2 text-sm font-bold transition ${
+                  isActive ? "bg-white/85 text-black shadow-sm" : "text-white/80 hover:bg-white/10"
+                }`}
+              >
                 {label}
               </NavLink>
             ))}
