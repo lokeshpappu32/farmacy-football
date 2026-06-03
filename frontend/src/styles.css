@@ -109,8 +109,15 @@ body {
   box-shadow: 0 0 0 3px rgba(248,201,69,.14);
 }
 
+.enroll-card {
+  width: min(100%, 920px);
+  max-width: calc(100vw - 1.5rem);
+}
+
 .enroll-input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 42px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, .25);
@@ -119,6 +126,16 @@ body {
   color: #050608;
   outline: none;
   font-size: 1rem;
+}
+
+@media (max-width: 420px) {
+  .enroll-card {
+    max-width: calc(100vw - 1rem);
+  }
+
+  .enroll-input {
+    font-size: .95rem;
+  }
 }
 
 .enroll-input:focus,
