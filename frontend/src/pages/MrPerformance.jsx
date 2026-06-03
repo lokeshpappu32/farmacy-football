@@ -43,11 +43,11 @@ export default function MrPerformance({ mode = "admin" }) {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
-        <section className="glass rounded-3xl p-5 md:p-6">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)]">
+        <section className="glass min-w-0 overflow-hidden rounded-3xl p-4 md:p-6">
           <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-            <h2 className="text-xl font-black">Top Global HETERO Representatives / Staff</h2>
-            <div className="grid gap-2 sm:grid-cols-[190px_auto]">
+            <h2 className="min-w-0 break-words text-xl font-black">Top Global HETERO Representatives / Staff</h2>
+            <div className="grid min-w-0 gap-2 sm:grid-cols-[190px_auto]">
               <select className="input" value={country} onChange={(event) => setCountry(event.target.value)}>
                 <option className="bg-black" value="">All countries</option>
                 {countries.map((item) => <option className="bg-black" key={item} value={item}>{item}</option>)}
@@ -55,29 +55,29 @@ export default function MrPerformance({ mode = "admin" }) {
               <button className="btn-ghost" onClick={refresh}>Refresh</button>
             </div>
           </div>
-          <div className="scroll-panel max-h-[560px] overflow-y-auto pr-2">
+          <div className="scroll-panel max-h-[560px] min-w-0 overflow-y-auto overflow-x-hidden pr-1 md:pr-2">
             <MrRankingList rows={mrRows} scroll={false} />
           </div>
         </section>
 
-        <section className="glass rounded-3xl p-5 md:p-6">
+        <section className="glass min-w-0 overflow-hidden rounded-3xl p-4 md:p-6">
           <h2 className="mb-4 text-xl font-black">Top Countries</h2>
-          <div className="scroll-panel max-h-[560px] space-y-3 overflow-y-auto pr-2">
+          <div className="scroll-panel max-h-[560px] min-w-0 space-y-3 overflow-y-auto overflow-x-hidden pr-1 md:pr-2">
             {countryRows.map((row) => (
-              <div key={row.mobile_number || row.country} className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div key={row.mobile_number || row.country} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/40 font-black text-gold">{row.rank}</div>
                   {row.country_flag_url && <img src={row.country_flag_url} alt={row.country} className="h-8 w-8 rounded-full object-cover" />}
                   <div className="min-w-0">
                     <div className="truncate text-lg font-black">{row.country}</div>
-                    <div className="text-xs text-white/50">
+                    <div className="truncate text-xs text-white/50">
                       {row.enrollments || 0} enrolled farmacists, {row.participations || 0} participations
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="min-w-0 pl-[52px] text-left sm:pl-0 sm:text-right">
                   <div className="text-xl font-black text-gold">{row.avg_participations ?? row.score}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-white/50">avg participations</div>
+                  <div className="truncate text-[10px] uppercase tracking-widest text-white/50">avg participations</div>
                 </div>
               </div>
             ))}
