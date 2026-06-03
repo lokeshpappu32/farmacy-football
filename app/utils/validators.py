@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from email_validator import EmailNotValidError, validate_email
 
 MOBILE_RE = re.compile(r"^\+?[0-9]{7,15}$")
+LOCAL_MOBILE_RE = re.compile(r"^[0-9]{7,15}$")
 COUNTRY_CODE_RE = re.compile(r"^\+[0-9]{1,4}$")
 
 
@@ -25,6 +26,13 @@ def clean_mobile(value):
     return mobile
 
 
+def clean_local_mobile(value):
+    mobile = str(value or "").strip().replace(" ", "").replace("-", "")
+    if not LOCAL_MOBILE_RE.match(mobile):
+        raise ValidationError("Enter a valid mobile number with 7 to 15 digits.")
+    return mobile
+
+
 def clean_country_code(value):
     country_code = str(value or "").strip().replace(" ", "")
     if not COUNTRY_CODE_RE.match(country_code):
@@ -34,7 +42,7 @@ def clean_country_code(value):
 
 def compose_mobile(country_code, mobile_number):
     country_code = clean_country_code(country_code)
-    local_number = clean_mobile(mobile_number).lstrip("+")
+    local_number = clean_local_mobile(mobile_number)
     return country_code, f"{country_code}{local_number}"
 
 
