@@ -176,7 +176,7 @@ export default function Enroll() {
 
   return (
     <div
-      className="relative flex min-h-screen flex-col overflow-hidden bg-cover bg-center px-3 pt-6 text-white sm:px-4 sm:pt-8"
+      className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-cover bg-center px-3 pt-6 text-white sm:px-4 sm:pt-8"
       style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
       <div className="absolute inset-0 bg-black/10" />
@@ -186,10 +186,10 @@ export default function Enroll() {
 
       <img src="/hetero-logo.png" alt="Hetero" className="absolute right-3 top-4 z-10 h-16 w-24 object-contain mix-blend-screen sm:right-[7%] sm:top-8 sm:h-24 sm:w-32" />
 
-      <form onSubmit={submit} className="relative z-10 mx-auto mt-24 w-full max-w-[920px] rounded-[30px] border border-white/12 bg-green-950/42 px-5 pb-8 pt-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-[1px] sm:mt-16 sm:px-7 md:px-12">
-        <FootballLogo compact={false} className="mx-auto mb-12 max-w-[320px] sm:mb-16 sm:max-w-[420px]" />
+      <form onSubmit={submit} className="enroll-card relative z-10 mx-auto mt-24 min-w-0 rounded-[30px] border border-white/12 bg-green-950/42 px-4 pb-8 pt-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-[1px] sm:mt-16 sm:px-7 md:px-12">
+        <FootballLogo compact={false} className="mx-auto mb-10 max-w-[260px] sm:mb-16 sm:max-w-[420px]" />
 
-        <div className={`grid gap-x-10 gap-y-6 ${heteroTypes.has(form.participant_type) ? "mx-auto max-w-md md:grid-cols-1" : "md:grid-cols-2"}`}>
+        <div className={`grid min-w-0 gap-x-10 gap-y-6 ${heteroTypes.has(form.participant_type) ? "mx-auto w-full max-w-md md:grid-cols-1" : "w-full md:grid-cols-2"}`}>
           <Field label={`Name of ${participantLabels[form.participant_type] || "Participant"}`}>
             <input className="enroll-input" required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} />
           </Field>
@@ -200,7 +200,7 @@ export default function Enroll() {
           )}
           <Field label="Country">
             <div className="relative min-w-0">
-              <div className="flex h-[42px] overflow-hidden rounded-[10px] border border-white/25 bg-[rgba(239,244,236,.9)] focus-within:border-white/85 focus-within:shadow-[0_0_0_4px_rgba(255,255,255,.12)]">
+              <div className="flex h-[42px] w-full min-w-0 overflow-hidden rounded-[10px] border border-white/25 bg-[rgba(239,244,236,.9)] focus-within:border-white/85 focus-within:shadow-[0_0_0_4px_rgba(255,255,255,.12)]">
                 <span className="flex w-[70px] shrink-0 items-center justify-center border-r border-black/10 px-2 text-sm font-black text-red-700 sm:w-[76px]">
                   {form.country_code || "Code"}
                 </span>
@@ -313,9 +313,9 @@ export default function Enroll() {
 
 function Field({ label, children }) {
   return (
-    <label className="block text-lg font-semibold tracking-wide text-white">
+    <label className="block min-w-0 text-base font-semibold tracking-wide text-white sm:text-lg">
       {label}
-      <div className="mt-2">{children}</div>
+      <div className="mt-2 min-w-0">{children}</div>
     </label>
   );
 }
