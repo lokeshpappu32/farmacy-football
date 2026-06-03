@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, request
 from flask_jwt_extended import create_access_token
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
 from app.models import Participant
@@ -88,19 +89,12 @@ def enroll():
             "Hetero Medical Rep",
         )
         country = str(payload["country"]).strip()
-        existing_mobile = Participant.query.filter_by(mobile_number=mobile).first()
+        existing_mobile = Participant.query.filter_by(country_code=country_code, mobile_number=mobile).first()
         if existing_mobile:
             if is_hetero_type(participant_type):
                 return {"message": "Entered Hetero Medical Rep mobile number already exists."}, 409
             return {"message": "Entered Farmacist mobile number already exists."}, 409
-        if is_hetero_type(participant_type):
-            existing_rep = Participant.query.filter(
-                db.func.lower(Participant.full_name) == str(payload["full_name"]).strip().lower(),
-                Participant.participant_type.in_(HETERO_TYPES | LEGACY_HETERO_TYPES),
-            ).first()
-            if existing_rep:
-                return {"message": "This HETERO Rep name is already enrolled."}, 409
-        else:
+        if not is_hetero_type(participant_type):
             rep_exists = Participant.query.filter(
                 Participant.participant_type.in_(HETERO_TYPES | LEGACY_HETERO_TYPES),
                 Participant.mobile_number == rep_mobile,
@@ -128,6 +122,9 @@ def enroll():
         add_points(participant, ENROLLMENT_POINTS, "Enrollment bonus")
         db.session.commit()
         return participant_login_response(participant, 201)
+    except IntegrityError:
+        db.session.rollback()
+        return {"message": "Entered mobile number already exists for enrollment."}, 409
     except ValidationError as exc:
         db.session.rollback()
         return {"message": str(exc)}, 400

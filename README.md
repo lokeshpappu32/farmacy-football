@@ -1,85 +1,19 @@
 # Farmacy Football
 
-Farmacy Football is a full-stack FIFA football prediction campaign platform for Hetero Pharmaceutical teams and pharmacists across 30 countries.
+Farmacy Football is a full-stack football prediction campaign platform for Hetero Pharmaceutical teams, HETERO Representatives / Staff, and Farmacists.
 
 ## Stack
 
 - React + Vite + JSX + Tailwind CSS
 - React Router, Axios, Framer Motion, React Icons
 - Flask, Flask SQLAlchemy, Flask JWT Extended, Flask CORS, Flask Limiter
-- PostgreSQL for Render deployment
-- Gunicorn on Render, with the React build served by Flask from one URL
+- Azure SQL Database through `pyodbc`
+- Gunicorn on Azure Linux App Service
+- React production build served by Flask from one URL
 
-## Local Setup
+## Azure Live Deployment
 
-1. Create a PostgreSQL database named `farmacy_football`, or switch to the backed-up MySQL config for local-only development.
-2. Copy `.env.example` to `.env` and update secrets and `DATABASE_URL`.
-3. Install backend dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-4. Install frontend dependencies:
-
-```bash
-cd frontend
-npm install
-```
-
-5. Initialize database tables and sample data:
-
-```bash
-python scripts/seed.py
-```
-
-6. Run frontend during development:
-
-```bash
-cd frontend
-npm run dev
-```
-
-7. Run Flask API:
-
-```bash
-python wsgi.py
-```
-
-For production-style local serving:
-
-```bash
-cd frontend
-npm run build
-cd ..
-gunicorn wsgi:app --bind 0.0.0.0:5000
-```
-
-## Render Deployment
-
-Use `render.yaml` to create one Python web service and one Render PostgreSQL database. Add environment variables from `.env.example`, especially:
-
-- `DATABASE_URL` is linked automatically from the Render database in `render.yaml`
-- `ADMIN_SECRET_CODE`
-- `SECRET_KEY`
-- `JWT_SECRET_KEY`
-- `PUBLIC_APP_URL`
-- `FOOTBALLDATA_IO_API_KEY`
-
-The Render build command installs Python packages, installs frontend packages, builds React, and starts Gunicorn. Flask serves `frontend/dist` so the app uses one deployed URL.
-
-## Azure App Service Deployment
-
-Use an Azure **Linux** App Service with Python 3.11 and Azure SQL Database.
-
-For full test/live setup instructions, see [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md).
-
-Enable Azure build automation and use this post-build command:
-
-```bash
-SCM_DO_BUILD_DURING_DEPLOYMENT=1
-POST_BUILD_COMMAND=bash scripts/azure_post_build.sh
-```
+Use Azure Linux App Service with Python 3.11 and Azure SQL Database.
 
 Startup command:
 
@@ -87,50 +21,85 @@ Startup command:
 bash startup.sh
 ```
 
-`startup.sh` runs `python scripts/init_db.py` before Gunicorn starts. That script creates the database tables and inserts/updates the real country list from `scripts/country_seed.py`. Do **not** run `python scripts/seed.py` in production unless you intentionally want demo participants, demo matches, demo predictions, and demo admin logs.
+`startup.sh` runs:
 
-Recommended Azure application settings:
+```bash
+python scripts/init_db.py
+```
 
-- `AZURE_SQL_CONNECTION_STRING`: Azure SQL ODBC connection string, for example `Driver={ODBC Driver 18 for SQL Server};Server=tcp:YOUR-SERVER.database.windows.net,1433;Database=YOUR-DB;Uid=YOUR-USER;Pwd=YOUR-PASSWORD;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;`
-- Leave `DATABASE_URL` unset for Azure SQL. If both are set, `AZURE_SQL_CONNECTION_STRING` takes priority.
-- `ADMIN_SECRET_CODE`: your private admin login code
-- `SECRET_KEY`: a long random secret
-- `JWT_SECRET_KEY`: another long random secret
-- `PUBLIC_APP_URL`: your Azure app URL, for example `https://your-app-name.azurewebsites.net`
-- `CORS_ORIGINS`: same Azure app URL
-- `RATELIMIT_STORAGE_URI`: `memory://`
-- `SCM_DO_BUILD_DURING_DEPLOYMENT`: `1`
-- `POST_BUILD_COMMAND`: `bash scripts/azure_post_build.sh`
-- `FOOTBALLDATA_IO_API_KEY`: your football API key
-- `FOOTBALLDATA_IO_BASE_URL`: `https://footballdata.io/api/v1`
-- `FOOTBALLDATA_IO_LEAGUE_IDS`: `50`
-- `FOOTBALLDATA_IO_SEASON_ID`: `618`
-- `FOOTBALLDATA_IO_LANG`: `en`
-- `FOOTBALLDATA_IO_SYNC_ENABLED`: `true`
+This creates missing tables and inserts/updates the production country list. Do not use `startup-test.sh` in live because it also runs demo seed data.
 
-If you deploy from your local machine as a ZIP/package, build the frontend first so `frontend/dist` is included:
+Recommended Azure App Service settings:
+
+```env
+AZURE_SQL_CONNECTION_STRING=Driver={ODBC Driver 18 for SQL Server};Server=tcp:YOUR-SERVER.database.windows.net,1433;Database=YOUR-DB;Uid=YOUR-USER;Pwd=YOUR-PASSWORD;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+SECRET_KEY=long-random-secret
+JWT_SECRET_KEY=different-long-random-secret
+JWT_ACCESS_TOKEN_EXPIRES_DAYS=90
+SUPER_ADMIN_USER_ID=superadmin
+SUPER_ADMIN_PASSWORD=secure-super-admin-password
+PUBLIC_APP_URL=https://your-live-domain
+CORS_ORIGINS=https://your-live-domain
+RATELIMIT_STORAGE_URI=memory://
+FOOTBALLDATA_IO_API_KEY=your-footballdata-api-key
+FOOTBALLDATA_IO_BASE_URL=https://footballdata.io/api/v1
+FOOTBALLDATA_IO_LEAGUE_IDS=50
+FOOTBALLDATA_IO_SEASON_ID=618
+FOOTBALLDATA_IO_LANG=en
+FOOTBALLDATA_IO_SYNC_ENABLED=true
+SCM_DO_BUILD_DURING_DEPLOYMENT=1
+POST_BUILD_COMMAND=bash scripts/azure_post_build.sh
+```
+
+Leave `DATABASE_URL` unset for Azure SQL unless you intentionally want to use a full SQLAlchemy URL.
+
+## Local Development
+
+Local MySQL backups are kept under `.backup/local-mysql-*`. Restore the latest local backup if you want to test locally with MySQL.
+
+Typical local commands after restoring MySQL mode:
 
 ```bash
 pip install -r requirements.txt
-cd frontend
-npm ci
-npm run build
-cd ..
+python scripts/init_db.py
+python scripts/seed.py
+python wsgi.py
 ```
 
-## Authentication
+Frontend build:
 
-Participants log in using their mobile number only. Admins log in by entering the `ADMIN_SECRET_CODE` value on the same login screen.
+```bash
+cd frontend
+npm install
+npm run build
+```
 
-## Point Rules
+## Roles
 
-- Enrollment: +100
-- Match prediction participation: +50
-- Correct winner prediction: +50
+- Farmacist: dashboard, schedule, performance, standings, points system
+- HETERO Representative / Staff: dashboard, schedule, performance, own standing, Farmacist standing, points system
+- Admin: global performance, HETERO staff standing, Farmacist standing, schedule, users
+- Super Admin: developer/operations pages for match management, logs, API sync tracking, analytics
+
+## Points
+
+- Enrollment: `+100`
+- Match participation: `+50`
+- Correct winner or draw prediction: `+50`
 - Wrong prediction: no deduction
-
-All datetimes are stored in UTC. Browser rendering uses the user's local timezone.
+- Cancelled match: participation points are retained
 
 ## Match Sync
 
-Football data sync is triggered by important pages and by the admin **Sync Matches** action. Database-backed throttling prevents repeated API calls when many users open the app at the same time.
+Football API sync is triggered by normal page/API activity and by the super admin Sync Matches action. Database-backed smart windows prevent repeated external API calls:
+
+- Upcoming sync: once every 2 hours
+- Live sync: once every 5 minutes only when live candidates exist
+- Results sync: once every 5 minutes only when result candidates exist
+- Usage/health sync: once per day from admin/super admin tracking flows
+
+If the football API fails, the application continues to serve existing database data and users are not interrupted. Admin/super admin can still update results manually.
+
+## Translation
+
+Browser-side translation supports Spanish and French for configured country/browser/IP signals. Super admin pages remain English.
