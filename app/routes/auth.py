@@ -94,14 +94,16 @@ def enroll():
             if is_hetero_type(participant_type):
                 return {"message": "Entered Hetero Medical Rep mobile number already exists."}, 409
             return {"message": "Entered Farmacist mobile number already exists."}, 409
+        registered_rep = None
         if not is_hetero_type(participant_type):
-            rep_exists = Participant.query.filter(
+            registered_rep = Participant.query.filter(
                 Participant.participant_type.in_(HETERO_TYPES | LEGACY_HETERO_TYPES),
                 Participant.mobile_number == rep_mobile,
                 db.func.lower(Participant.country) == country.lower(),
             ).first()
-            if not rep_exists:
+            if not registered_rep:
                 return {"message": MR_REQUIRED_MESSAGE}, 409
+        canonical_rep_name = registered_rep.full_name if registered_rep else str(payload["full_name"]).strip()
         participant = Participant(
             full_name=str(payload["full_name"]).strip(),
             participant_type=participant_type,
@@ -112,7 +114,7 @@ def enroll():
             country=country,
             city=None,
             mr_id=None,
-            medical_rep_name=str(payload.get("medical_rep_name") or payload["full_name"]).strip(),
+            medical_rep_name=canonical_rep_name,
             medical_rep_country_code=rep_country_code,
             medical_rep_mobile_number=rep_mobile,
             total_points=0,
