@@ -38,20 +38,23 @@ const participantAliases = {
 const pharmacyTypes = new Set(["farmacy_owner", "farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"]);
 const heteroTypes = new Set(["hetero_representative_staff", "hetero_staff", "hetero_representative"]);
 const termsText = [
-  ["1. Purpose", "This Campaign is a voluntary pharmacist engagement initiative conducted by representatives associated with Hetero and/or its affiliated entities (“Organizer”) for promotional interaction, participation engagement, and entertainment purposes only.\n\nThis Campaign does not constitute gambling, betting, wagering, lottery, gaming, or any activity involving monetary stakes or consideration."],
-  ["2. Eligibility", "Participation is open only to legally eligible pharmacists and authorized pharmacy personnel aged 18 years or above, subject to applicable local laws, institutional policies, and professional regulations.\n\nParticipation is entirely voluntary and independent."],
-  ["3. Campaign Mechanics", "Participants may:\n\nRegister once on the designated web platform;\nPredict outcomes of listed football matches; and\nIndicate their preferred Hetero brand.\n\nParticipants may receive engagement points for:\n\nMatch participation; and\nCorrect outcome predictions.\n\nPoints, rankings, and leaderboard positions are solely for engagement and recognition purposes and hold no monetary value, transferable rights, or commercial entitlement."],
-  ["4. No Commercial Obligation", "Participation in this Campaign:\n\nDoes not require purchase, prescription, recommendation, stocking, or promotion of any product;\nShall not influence professional judgment or pharmacy practice; and\nCreates no commercial, contractual, or financial relationship between participants and the Organizer."],
-  ["5. Leaderboard & Technical Disclaimer", "The Campaign platform, schedules, scoring systems, and leaderboards may be operated through third-party software providers.\n\nThe Organizer shall not be liable for:\n\nTechnical failures;\nConnectivity issues;\nLogin/access interruptions;\nDelayed or inaccurate updates;\nFixture or schedule errors;\nIncorrect scoring or rankings; or\nAny software or system malfunction.\n\nAll match-related information is sourced from publicly available third-party data and may change without notice."],
-  ["6. Independent Participation", "Each participant confirms that:\n\nParticipation is voluntary;\nParticipation complies with applicable local laws, employer policies, and healthcare compliance standards; and\nThe participant independently assumes responsibility for participation."],
-  ["7. Hetero Representative Disclaimer", "Any Hetero representative, medical representative (“MR”), distributor personnel, or field staff involved in facilitating this Campaign acts solely in an engagement coordination capacity.\n\nThe Organizer shall not be responsible for any independent representation, commitment, assurance, or communication made outside officially approved Campaign channels."],
-  ["8. No Association With Sports Authorities", "This Campaign is an independent engagement activity and is not sponsored, endorsed, administered by, or associated with any football federation, tournament organizer, league authority, club, or sports governing body."],
-  ["9. Data Privacy", "By participating, users consent to collection and processing of limited participation-related information for Campaign administration, leaderboard generation, communication, and engagement tracking purposes.\n\nThe Organizer does not guarantee uninterrupted platform security or error-free digital operations."],
-  ["10. Limitation of Liability", "To the fullest extent permitted under applicable law, the Organizer, its affiliates, employees, representatives, distributors, and technology partners shall not be liable for any direct, indirect, incidental, consequential, technical, reputational, or financial loss arising from participation in the Campaign."],
-  ["11. Right to Modify or Terminate", "The Organizer reserves the absolute right to:\n\nAmend these Terms & Conditions;\nModify Campaign mechanics or scoring;\nSuspend or terminate participation; or\nWithdraw the Campaign,\n\nat any time without prior notice or liability."],
-  ["12. Acceptance", "By registering or participating, participants acknowledge that they:\n\nHave read and accepted these Terms & Conditions;\nParticipate voluntarily and independently; and\nUnderstand that this Campaign is solely a non-commercial engagement activity and not a betting or gaming platform."],
+  "Thank you for participating in the Football with Pharmacists Campaign.",
+  "This Campaign has been designed as a voluntary engagement intended to encourage participation, interaction, communication, and recognition during June & July 2026. Participation is entirely voluntary. No purchase, recommendation, stocking,dispensing, promotion, or use of any product associated with Hetero or its affiliated entities is required for participation. The Campaign is intended to create a positive engagement experience through sports-related participation activities available throughthe platform. Participants are encouraged to review these Terms, Conditions & Disclaimer before registering.",
+  "By registering, enrolling, accessing, or participating in the Campaign or any associated platform, link, communication, or activity, participants acknowledge and agree to the following: Participation is voluntary, Participation must complywith local norms, laws, employer policies, and professional obligations, Information submitted may be used for Campaign administration, communication, analytics, reporting, and operational purposes, Campaign-related information, standings, rankings, and participationmetrics may be displayed within the platform, The Campaign is intended to operate during June and July 2026.",
+  "The Campaign, its structure, operation, participation methodology, registration process, participation activities, standings, rankings, visibility mechanisms, recognition mechanisms, communication materials, timelines, platform functionality,data fields, participation metrics, reporting structures, eligibility criteria, operational procedures, and all related elements may be amended, modified, suspended, restricted, replaced, postponed, discontinued, withdrawn, terminated, or otherwise alteredby the Organizer at any time, in whole or in part, with or without notice, explanation, justification, consent, liability, obligation, compensation, or correspondence.",
+  "The Organizer shall have sole and absolute authority to determine eligibility, participation status, registration validity, participation metrics, standings, rankings, visibility measures, recognition eligibility, platform access, interpretationof Campaign rules, interpretation of these Terms, Conditions & Disclaimer, and all matters relating to Campaign administration. All decisions of the Organizer shall be final, binding, conclusive, and not subject to challenge, appeal, objection, arbitration,review, reconsideration, dispute, or further correspondence. The Organizer shall not be obligated to provide reasons, supporting information, evidence, documentation, clarification, or justification for any decision made in connection with the Campaign.",
+  "Participation, standings, rankings, visibility, acknowledgements, participation benefits, recognition activities, engagement activities, communications, and all Campaign-related elements are discretionary in nature and create no vestedright, entitlement, ownership interest, expectation, contractual right, commercial right, employment right, financial right, or enforceable claim against the Organizer. No standing, ranking, visibility measure, participation metric, acknowledgment, or recognitionstatus shall create any entitlement, expectation, claim, preference, benefit, or right of any kind.",
+  "This Campaign is an independent participant engagement initiative developed solely by the Organizer and has no sponsorship, endorsement, approval, authorization, affiliation, partnership, association, relationship, or official connectionwhatsoever with any local, national, regional, continental, or international sporting event, sports competition, federation, league, club, association, governing body, authority, rights holder, tournament organizer, or related entity.",
+  "All registration links, platform content, communications, dashboards, standings, rankings, screenshots, screen recordings, reports, participant information, campaign materials, training materials, analytics, outputs, participation metrics,and related information shall be treated as confidential. Participants shall not copy, reproduce, record, publish, distribute, transmit, circulate, upload, post, display, disclose, share, forward, broadcast, store, or otherwise make available any such informationto any third party, social media platform, media outlet, governmental authority, industry body, competitor, external organization, or unrelated individual without prior written authorization from the Organizer.",
+  "Participants expressly consent to the collection, receipt, storage, processing, transfer, analysis, review, retention, administration, and use of information submitted in connection with the Campaign. Such processing may occur across jurisdictionsand through third-party service providers engaged by the Organizer. Individuals who do not agree to such collection, storage, transfer, processing, review, analysis, retention, or use of information should not register, enroll, access, or participate in theCampaign.",
+  "Participants are solely responsible for the accuracy, completeness, legality, validity, and appropriateness of any information, data, declarations, registrations, submissions, or other content provided in connection with the Campaign.",
+  "Participants acknowledge and agree that they have not relied upon, and shall not rely upon, any representation, statement, assurance, promise, commitment, expectation, communication, interpretation, understanding, or indication made byany employee, medical representative, distributor, contractor, supervisor, country team member, third party, or any person whatsoever other than the provisions expressly contained within these Terms, Conditions & Disclaimer.",
+  "The Organizer shall have no obligation to provide alternative participation mechanisms, individualized privacy accommodations, explanations, review procedures, appeal mechanisms, correction opportunities, dispute resolution processes, platformavailability guarantees, continued access rights, or ongoing participation rights.",
+  "The Organizer reserves the right to suspend, remove, restrict, invalidate, disregard, terminate, or disqualify any participant, registration, participation record, participation metric, standing, ranking, visibility measure, communication,or platform access at its sole discretion and without obligation to provide explanation or justification.",
+  "The Organizer shall not be responsible or liable for the conduct, actions, communications, representations, omissions, statements, commitments, interpretations, or activities of any participant, employee, contractor, distributor, representative,technology provider, service provider, or third party participating in, supporting, facilitating, administering, or otherwise associated with the Campaign.",
+  "To the fullest extent permitted under applicable law, the Organizer, its affiliates, officers, directors, employees, representatives, contractors, distributors, service providers, technology partners, and associated entities shall not beliable for any direct, indirect, incidental, consequential, regulatory, reputational, professional, commercial, operational, technical, financial, or other loss, damage, claim, cost, expense, proceeding, investigation, action, or liability arising from orrelating to participation in the Campaign.",
+  "By proceeding with registration or participation, each participant confirms that they have read, understood, accepted, and agreed to these Terms, Conditions & Disclaimer in their entirety.",
 ];
-
 export default function Enroll() {
   const [params] = useSearchParams();
   const requestedType = (params.get("participant_type") || "").toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
@@ -186,7 +189,7 @@ export default function Enroll() {
 
       <img src="/hetero-logo.png" alt="Hetero" className="absolute right-3 top-4 z-10 h-16 w-24 object-contain mix-blend-screen sm:right-[7%] sm:top-8 sm:h-24 sm:w-32" />
 
-      <form onSubmit={submit} className="enroll-card relative z-10 mx-auto mt-24 min-w-0 rounded-[30px] border border-white/12 bg-green-950/42 px-4 pb-8 pt-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-[1px] sm:mt-16 sm:px-7 md:px-12">
+      <form onSubmit={submit} className="enroll-card relative z-10 mx-auto mt-24 min-w-0 rounded-[30px] border border-white/12 bg-green-950/42 px-3 pb-8 pt-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-[1px] sm:mt-16 sm:px-7 md:px-12">
         <FootballLogo compact={false} className="mx-auto mb-10 max-w-[260px] sm:mb-16 sm:max-w-[420px]" />
 
         <div className={`grid min-w-0 gap-x-10 gap-y-6 ${heteroTypes.has(form.participant_type) ? "mx-auto w-full max-w-md md:grid-cols-1" : "w-full md:grid-cols-2"}`}>
@@ -277,7 +280,7 @@ export default function Enroll() {
           )}
         </div>
 
-        <label className="mt-5 flex cursor-pointer items-center justify-center gap-3 text-base italic">
+        <label className="mt-5 flex cursor-pointer items-start justify-center gap-3 text-sm italic sm:items-center sm:text-base">
           <input
             type="checkbox"
             className="terms-checkbox-input"
@@ -285,15 +288,15 @@ export default function Enroll() {
             onChange={(event) => update("accepted_terms", event.target.checked)}
           />
           <span className="terms-checkbox-mark" aria-hidden="true" />
-          <span>
+          <span className="min-w-0 flex-1 leading-snug sm:flex-none">
             I accept the{" "}
-            <button type="button" className="underline" onClick={() => setShowTerms(true)}>
+            <button type="button" className="whitespace-normal break-words text-left underline" onClick={() => setShowTerms(true)}>
               terms and conditions
             </button>
           </span>
         </label>
 
-        <button className="mx-auto mt-8 block w-full max-w-2xl rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-8 py-4 text-2xl font-black uppercase leading-none text-white shadow-[0_16px_34px_rgba(0,0,0,0.35)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70" disabled={loading}>
+        <button className="enroll-submit-btn mx-auto mt-8 block w-full max-w-2xl rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-4 py-4 font-black uppercase leading-tight text-white shadow-[0_16px_34px_rgba(0,0,0,0.35)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70 sm:px-8" disabled={loading}>
           {loading ? "Enrolling..." : "Enroll and get 100 points"}
         </button>
       </form>
@@ -325,16 +328,12 @@ function TermsModal({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
       <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[#07120d] text-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h2 className="text-xl font-black">Terms & Conditions</h2>
+          <h2 className="text-xl font-black">TERMS, CONDITIONS & DISCLAIMER</h2>
           <button type="button" className="rounded-full bg-white/10 px-3 py-1 text-xl" onClick={onClose} aria-label="Close terms">x</button>
         </div>
         <div className="scroll-panel max-h-[68vh] space-y-4 overflow-y-auto px-5 py-4">
-          <p className="font-bold text-gold">Pharmacist Football Engagement Campaign</p>
-          {termsText.map(([title, copy]) => (
-            <section key={title}>
-              <h3 className="font-black">{title}</h3>
-              <p className="mt-1 whitespace-pre-line text-sm leading-6 text-white/75">{copy}</p>
-            </section>
+          {termsText.map((copy, index) => (
+            <p key={index} className="text-sm leading-6 text-white/75">{copy}</p>
           ))}
         </div>
       </div>

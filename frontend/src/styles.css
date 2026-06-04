@@ -111,7 +111,7 @@ body {
 
 .enroll-card {
   width: min(100%, 920px);
-  max-width: calc(100vw - 1.5rem);
+  max-width: calc(100vw - .75rem);
 }
 
 .enroll-input {
@@ -130,11 +130,21 @@ body {
 
 @media (max-width: 420px) {
   .enroll-card {
-    max-width: calc(100vw - 1rem);
+    max-width: calc(100vw - .5rem);
   }
 
   .enroll-input {
     font-size: .95rem;
+  }
+}
+
+.enroll-submit-btn {
+  font-size: clamp(1.05rem, 7.3vw, 1.5rem);
+}
+
+@media (max-width: 360px) {
+  .enroll-submit-btn {
+    font-size: clamp(.92rem, 6.6vw, 1.15rem);
   }
 }
 
