@@ -55,6 +55,7 @@ class Config:
     PUBLIC_APP_URL = os.getenv("PUBLIC_APP_URL", "http://localhost:5000")
 
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+    RATELIMIT_ENABLED = os.getenv("RATELIMIT_ENABLED", "true").lower() == "true"
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
 
     FRONTEND_DIST = BASE_DIR / "frontend" / "dist"

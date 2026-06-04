@@ -45,7 +45,7 @@ export default function Home() {
 
   return (
     <main
-      className="relative flex h-screen flex-col overflow-hidden bg-cover bg-center text-white"
+      className="relative flex min-h-screen flex-col overflow-x-hidden bg-cover bg-center text-white"
       style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
       <div className="absolute inset-0 bg-black/10" />
@@ -83,7 +83,7 @@ export default function Home() {
           Login - if you are Admin
         </Link>
       </section>
-      <AppFooter compact />
+      <AppFooter compact showClientLogos />
     </main>
   );
 }
