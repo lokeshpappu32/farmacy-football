@@ -1,19 +1,21 @@
 import { motion } from "framer-motion";
+import { useLanguage } from "../context/LanguageContext";
 
 const participantTypeLabels = {
-  farmacist: "Farmacist",
-  farmacy_owner: "Farmacy Owner",
-  farmacy_head_supervisor: "Farmacy Head / Supervisor",
-  farmacy_head: "Farmacy Head",
-  farmacy_supervisor: "Farmacy Supervisor",
-  farmacy_sales_staff: "Farmacy Sales Staff",
-  medical_rep: "HETERO Representative",
-  hetero_representative_staff: "HETERO Representative / Staff",
-  hetero_staff: "HETERO Staff",
-  hetero_representative: "HETERO Representative",
+  farmacist: ["common.participant", "Farmacist"],
+  farmacy_owner: ["participant.farmacyOwner", "Farmacy Owner"],
+  farmacy_head_supervisor: ["participant.farmacyHeadSupervisor", "Farmacy Head / Supervisor"],
+  farmacy_head: ["participant.farmacyHead", "Farmacy Head"],
+  farmacy_supervisor: ["participant.farmacyHeadSupervisor", "Farmacy Supervisor"],
+  farmacy_sales_staff: ["participant.farmacySalesStaff", "Farmacy Sales Staff"],
+  medical_rep: ["participant.heteroRepresentative", "HETERO Representative"],
+  hetero_representative_staff: ["participant.heteroRepresentativeStaff", "HETERO Representative / Staff"],
+  hetero_staff: ["participant.heteroStaff", "HETERO Staff"],
+  hetero_representative: ["participant.heteroRepresentative", "HETERO Representative"],
 };
 
 export default function LeaderboardList({ rows = [] }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-4">
       {rows.map((row, index) => (
@@ -44,13 +46,13 @@ export default function LeaderboardList({ rows = [] }) {
                 <span>{row.country}</span>
               </div>
               <div className="mt-1 text-xs font-semibold text-white/45 md:text-sm">
-                {participantTypeLabels[row.participant_type] || "Participant"}
+                {participantTypeLabels[row.participant_type] ? t(...participantTypeLabels[row.participant_type]) : t("common.participant", "Participant")}
               </div>
             </div>
           </div>
           <div className="shrink-0 text-right">
             <div className="text-2xl font-black text-gold md:text-3xl">{row.total_points}</div>
-            <div className="text-[11px] uppercase tracking-widest text-white/50 md:text-xs">points</div>
+            <div className="text-[11px] uppercase tracking-widest text-white/50 md:text-xs">{t("ranking.points", "points")}</div>
           </div>
         </motion.div>
       ))}

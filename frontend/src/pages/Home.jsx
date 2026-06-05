@@ -3,15 +3,16 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppFooter from "../components/AppFooter";
 import FootballLogo from "../components/FootballLogo";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { homeForRole } from "../utils/auth";
 
 const pharmacyOptions = [
-  ["farmacy_owner", "Farmacy Owner"],
-  ["farmacy_head_supervisor", "Farmacy Head / Supervisor"],
-  ["farmacy_sales_staff", "Farmacy Sales Staff"],
+  ["farmacy_owner", "participant.farmacyOwner", "Farmacy Owner"],
+  ["farmacy_head_supervisor", "participant.farmacyHeadSupervisor", "Farmacy Head / Supervisor"],
+  ["farmacy_sales_staff", "participant.farmacySalesStaff", "Farmacy Sales Staff"],
 ];
 const heteroOptions = [
-  ["hetero_representative_staff", "Hetero Representative / Staff"],
+  ["hetero_representative_staff", "participant.heteroRepresentativeStaff", "Hetero Representative / Staff"],
 ];
 const visitorOptions = [...pharmacyOptions, ...heteroOptions].map(([value]) => value);
 const visitorAliases = {
@@ -30,6 +31,7 @@ const visitorAliases = {
 };
 
 export default function Home() {
+  const { t } = useLanguage();
   const [params] = useSearchParams();
   const [visitorType, setVisitorType] = useState("farmacy_owner");
   const navigate = useNavigate();
@@ -63,16 +65,16 @@ export default function Home() {
           <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-100" />
 
           <div className="mt-6 grid w-full max-w-4xl gap-5 text-left text-xs font-semibold uppercase tracking-wide sm:mt-8 sm:text-sm lg:grid-cols-[1fr_auto_1fr] lg:text-base">
-            <RoleGroup title="Farmacist Type" options={pharmacyOptions} selectedType={selectedType} onChange={setVisitorType} />
+            <RoleGroup title={t("home.farmacistType", "Farmacist Type")} options={pharmacyOptions} selectedType={selectedType} onChange={setVisitorType} />
             <div className="hidden w-px bg-white/70 lg:block" />
-            <RoleGroup title="Hetero Representative / Staff" options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
+            <RoleGroup title={t("home.heteroRepStaff", "Hetero Representative / Staff")} options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
           </div>
 
           <Link
             to={enrollUrl}
             className="mt-6 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-10 py-3 text-xl font-black uppercase leading-none text-white shadow-[0_14px_30px_rgba(0,0,0,0.35)] transition hover:scale-[1.02] hover:brightness-110 sm:mt-8 sm:px-12 sm:py-4 sm:text-2xl"
           >
-            Enroll
+            {t("home.enroll", "Enroll")}
           </Link>
         </div>
 
@@ -80,7 +82,7 @@ export default function Home() {
           to="/login"
           className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:bottom-4 sm:text-base"
         >
-          Login - if you are Admin
+          {t("enroll.adminLogin", "Login - if you are Admin")}
         </Link>
       </section>
       <AppFooter compact showClientLogos />
@@ -89,11 +91,12 @@ export default function Home() {
 }
 
 function RoleGroup({ title, options, selectedType, onChange }) {
+  const { t } = useLanguage();
   return (
     <div className="mx-auto w-full max-w-sm">
       <h2 className="mb-5 text-center text-base font-black text-white lg:text-left">{title}</h2>
       <div className="space-y-4">
-        {options.map(([value, label]) => (
+        {options.map(([value, labelKey, label]) => (
           <label key={value} className="home-role-option">
             <input
               type="radio"
@@ -104,7 +107,7 @@ function RoleGroup({ title, options, selectedType, onChange }) {
               className="home-role-radio"
             />
             <span className="home-role-mark" />
-            <span className="leading-snug">{label}</span>
+            <span className="leading-snug">{t(labelKey, label)}</span>
           </label>
         ))}
       </div>

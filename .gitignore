@@ -5,7 +5,7 @@ __pycache__/
 .python-version
 .env
 .env.*
-!.env.example
+.env.example
 .venv/
 venv/
 env/

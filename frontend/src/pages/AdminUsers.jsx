@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import { useLanguage } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 
@@ -12,6 +13,7 @@ const defaultParticipantTypes = [
 ];
 
 export default function AdminUsers() {
+  const { t } = useLanguage();
   const [filters, setFilters] = useState({ q: "", country: "", participant_type: "" });
   const [options, setOptions] = useState({ countries: [], participant_types: [] });
   const [page, setPage] = useState(1);
@@ -73,13 +75,13 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
-        <h1 className="text-3xl font-black">User Management</h1>
+        <h1 className="text-3xl font-black">{t("admin.userManagement", "User Management")}</h1>
         <div className="grid gap-2 lg:grid-cols-[240px_180px_250px_auto_auto]">
-          <input className="input" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} placeholder="Search user, mobile, email" />
-          <FilterSelect value={filters.country} onChange={(value) => updateFilter("country", value)} options={countries} label="All countries" />
+          <input className="input" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} placeholder={t("admin.searchUsers", "Search user, mobile, email")} />
+          <FilterSelect value={filters.country} onChange={(value) => updateFilter("country", value)} options={countries} label={t("common.allCountries", "All countries")} />
           <ParticipantTypeSelect value={filters.participant_type} onChange={(value) => updateFilter("participant_type", value)} options={participantTypes} />
-          <button className="btn-ghost" onClick={clearFilters}>Clear</button>
-          <button className="btn-primary" onClick={exportCsv}>Export CSV</button>
+          <button className="btn-ghost" onClick={clearFilters}>{t("admin.clear", "Clear")}</button>
+          <button className="btn-primary" onClick={exportCsv}>{t("admin.exportCsv", "Export CSV")}</button>
         </div>
       </div>
       <div className="glass overflow-x-auto rounded-3xl p-4">
@@ -87,13 +89,13 @@ export default function AdminUsers() {
           <>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
-                {users.length} users
+                {users.length} {t("admin.users", "users")}
               </span>
               <PaginationControls page={page} totalPages={totalPages} onPage={setPage} />
             </div>
             <div className="scroll-panel max-h-[680px] overflow-auto pr-2">
               <table className="w-full min-w-[860px] text-left text-sm">
-                <thead className="sticky top-0 bg-zinc-950 text-white/55"><tr><th className="p-3">Name</th><th>Mobile</th><th>Email</th><th>Country</th><th>HETERO Rep / Staff</th><th>Participant Type</th><th>Points</th></tr></thead>
+                <thead className="sticky top-0 bg-zinc-950 text-white/55"><tr><th className="p-3">{t("admin.name", "Name")}</th><th>{t("admin.mobile", "Mobile")}</th><th>{t("admin.email", "Email")}</th><th>{t("common.country", "Country")}</th><th>HETERO Rep / Staff</th><th>{t("admin.participantType", "Participant Type")}</th><th>{t("common.points", "Points")}</th></tr></thead>
                 <tbody>
                   {visibleUsers.map((user) => (
                     <tr key={user.id} className="border-t border-white/10">
@@ -102,7 +104,7 @@ export default function AdminUsers() {
                   ))}
                   {users.length === 0 && (
                     <tr className="border-t border-white/10">
-                      <td className="p-4 text-white/55" colSpan="7">No users match the selected filters.</td>
+                      <td className="p-4 text-white/55" colSpan="7">{t("admin.noUsers", "No users match the selected filters.")}</td>
                     </tr>
                   )}
                 </tbody>
@@ -215,9 +217,10 @@ function FilterSelect({ value, onChange, options, label, labels = {} }) {
 }
 
 function ParticipantTypeSelect({ value, onChange, options }) {
+  const { t } = useLanguage();
   return (
     <select className="input" value={value} onChange={(event) => onChange(event.target.value)}>
-      <option className="bg-black" value="">All participant types</option>
+      <option className="bg-black" value="">{t("admin.allParticipantTypes", "All participant types")}</option>
       {options.map((option) => (
         <option className="bg-black" key={option.value} value={option.value}>
           {option.label}

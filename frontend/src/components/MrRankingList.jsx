@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function MrRankingList({ rows = [], showCountry = true, scroll = true }) {
+  const { t } = useLanguage();
   return (
     <div className={`${scroll ? "scroll-panel max-h-[560px] overflow-y-auto pr-2" : ""} space-y-3`}>
       {rows.map((row, index) => (
@@ -32,21 +34,21 @@ export default function MrRankingList({ rows = [], showCountry = true, scroll = 
               </div>
             )}
             {row.enrollments !== undefined && (
-              <div className="mt-1 truncate text-xs text-white/45">{row.enrollments} enrolled farmacists</div>
+              <div className="mt-1 truncate text-xs text-white/45">{t("ranking.enrolledFarmacists", `${row.enrollments} enrolled farmacists`, { count: row.enrollments })}</div>
             )}
           </div>
           <div className="col-span-2 min-w-0 text-left sm:col-span-1 sm:text-right">
             <div className="text-xl font-black text-gold sm:text-2xl">{row.total_points ?? row.participations}</div>
-            <div className="truncate text-[10px] uppercase tracking-widest text-white/50">{row.total_points !== undefined ? "points" : "participations"}</div>
+            <div className="truncate text-[10px] uppercase tracking-widest text-white/50">{row.total_points !== undefined ? t("ranking.points", "points") : t("ranking.participations", "participations")}</div>
             {row.avg_participations_per_farmacist !== undefined && (
               <div className="mt-1 truncate text-xs font-bold text-white/45">
-                {row.avg_participations_per_farmacist} avg/enrollment
+                {t("ranking.avgEnrollment", `${row.avg_participations_per_farmacist} avg/enrollment`, { value: row.avg_participations_per_farmacist })}
               </div>
             )}
           </div>
         </motion.div>
       ))}
-      {!rows.length && <div className="rounded-2xl bg-white/10 p-5 text-white/60">No HETERO Representative / Staff ranking data available yet.</div>}
+      {!rows.length && <div className="rounded-2xl bg-white/10 p-5 text-white/60">{t("ranking.noMrData", "No HETERO Representative / Staff ranking data available yet.")}</div>}
     </div>
   );
 }

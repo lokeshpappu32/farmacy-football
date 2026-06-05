@@ -3,12 +3,14 @@ import { FaCalendarAlt, FaCheckCircle, FaClock, FaMapMarkerAlt } from "react-ico
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import TeamLogo from "../components/TeamLogo";
 import { useApi } from "../hooks/useApi";
+import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import { formatDateTime } from "../utils/datetime";
 
 const perPage = 8;
 
 export default function MatchSchedule() {
+  const { t } = useLanguage();
   const [pages, setPages] = useState({ upcoming: 1, completed: 1 });
   const today = new Date();
   const clientDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -23,26 +25,26 @@ export default function MatchSchedule() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaCalendarAlt /> Match Schedule</p>
-        <h1 className="mt-2 text-3xl font-black md:text-5xl">Upcoming & Completed Matches</h1>
-        <p className="mt-2 text-white/60">Track all fixtures, final results, cancelled games, venues, and kickoff times in your local timezone.</p>
+        <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaCalendarAlt /> {t("schedule.matchSchedule", "Match Schedule")}</p>
+        <h1 className="mt-2 text-3xl font-black md:text-5xl">{t("schedule.title", "Upcoming & Completed Matches")}</h1>
+        <p className="mt-2 text-white/60">{t("schedule.copy", "Track all fixtures, final results, cancelled games, venues, and kickoff times in your local timezone.")}</p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_.95fr]">
         <SchedulePanel
-          title="Upcoming Matches"
+          title={t("schedule.upcomingMatches", "Upcoming Matches")}
           icon={FaClock}
           matches={data.upcoming || []}
           meta={data.pagination?.upcoming}
-          empty="No upcoming matches available."
+          empty={t("schedule.noUpcoming", "No upcoming matches available.")}
           onPage={(page) => setPages((current) => ({ ...current, upcoming: page }))}
         />
         <SchedulePanel
-          title="Completed Matches"
+          title={t("schedule.completedMatches", "Completed Matches")}
           icon={FaCheckCircle}
           matches={data.completed || []}
           meta={data.pagination?.completed}
-          empty="No completed matches yet."
+          empty={t("schedule.noCompleted", "No completed matches yet.")}
           onPage={(page) => setPages((current) => ({ ...current, completed: page }))}
           completed
         />
@@ -52,6 +54,7 @@ export default function MatchSchedule() {
 }
 
 function SchedulePanel({ title, icon: Icon, matches, meta, empty, onPage, completed = false }) {
+  const { t } = useLanguage();
   return (
     <section className="glass rounded-3xl p-5 md:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -60,7 +63,7 @@ function SchedulePanel({ title, icon: Icon, matches, meta, empty, onPage, comple
           <h2 className="text-xl font-black">{title}</h2>
         </div>
         <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
-          {meta?.total || 0} total
+          {meta?.total || 0} {t("common.total", "total")}
         </span>
       </div>
 
@@ -75,11 +78,12 @@ function SchedulePanel({ title, icon: Icon, matches, meta, empty, onPage, comple
 }
 
 function ScheduleCard({ match, completed }) {
+  const { t } = useLanguage();
   return (
     <article className="rounded-2xl border border-white/10 bg-white/10 p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-widest text-gold">{completed ? "Result" : "Fixture"}</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-gold">{completed ? t("schedule.result", "Result") : t("schedule.fixture", "Fixture")}</div>
           <div className="mt-1 text-sm text-white/60">{formatDateTime(match.match_datetime)}</div>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${match.status === "cancelled" ? "bg-ember/20 text-ember" : "bg-gold/10 text-gold"}`}>
@@ -96,9 +100,9 @@ function ScheduleCard({ match, completed }) {
       {(match.venue_name || match.venue_location) && (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-center text-xs text-white/55">
           <FaMapMarkerAlt className="text-gold" />
-          {match.venue_name && <span><span className="text-gold">Stadium:</span> {match.venue_name}</span>}
+          {match.venue_name && <span><span className="text-gold">{t("common.stadium", "Stadium")}:</span> {match.venue_name}</span>}
           {match.venue_name && match.venue_location && <span className="text-white/30">|</span>}
-          {match.venue_location && <span><span className="text-gold">Location:</span> {match.venue_location}</span>}
+          {match.venue_location && <span><span className="text-gold">{t("common.location", "Location")}:</span> {match.venue_location}</span>}
         </div>
       )}
     </article>
@@ -121,12 +125,13 @@ function ScheduleTeam({ match, side, right = false }) {
 }
 
 function Pagination({ meta, onPage }) {
+  const { t } = useLanguage();
   if (!meta || meta.pages <= 1) return null;
   return (
     <div className="mt-5 flex items-center justify-between gap-3">
-      <button className="btn-ghost disabled:cursor-not-allowed disabled:opacity-50" disabled={!meta.has_prev} onClick={() => onPage(meta.page - 1)}>Previous</button>
-      <span className="text-sm font-bold text-white/60">Page {meta.page} of {meta.pages}</span>
-      <button className="btn-ghost disabled:cursor-not-allowed disabled:opacity-50" disabled={!meta.has_next} onClick={() => onPage(meta.page + 1)}>Next</button>
+      <button className="btn-ghost disabled:cursor-not-allowed disabled:opacity-50" disabled={!meta.has_prev} onClick={() => onPage(meta.page - 1)}>{t("schedule.previous", "Previous")}</button>
+      <span className="text-sm font-bold text-white/60">{t("schedule.pageOf", `Page ${meta.page} of ${meta.pages}`, { page: meta.page, pages: meta.pages })}</span>
+      <button className="btn-ghost disabled:cursor-not-allowed disabled:opacity-50" disabled={!meta.has_next} onClick={() => onPage(meta.page + 1)}>{t("schedule.next", "Next")}</button>
     </div>
   );
 }

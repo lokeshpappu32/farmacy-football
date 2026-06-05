@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, request
 from flask_jwt_extended import create_access_token
+from hmac import compare_digest
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
@@ -16,13 +17,6 @@ LEGACY_FARMACIST_TYPES = {"farmacist"}
 LEGACY_HETERO_TYPES = {"medical_rep", "hetero_rep", "representative", "rep", "mr"}
 PARTICIPANT_TYPES = PHARMACY_TYPES | HETERO_TYPES | LEGACY_FARMACIST_TYPES | LEGACY_HETERO_TYPES
 MR_REQUIRED_MESSAGE = "Kindly ask your Hetero Representative to enroll first using his/her mobile number."
-ADMIN_CREDENTIALS = {
-    "kashyap.n@hetero.com": {"password": "Kashyap@2026", "name": "Kashyap"},
-    "ravichandra.a@hetero.com": {"password": "RaviChandra@2026", "name": "RaviChandra"},
-    "nilanjan.kar@hetero.com": {"password": "Nilanjan@2026", "name": "Nilanjan"},
-    "lakhanreddy@hetero.com": {"password": "LakhanReddy@2026", "name": "LakhanReddy"},
-    "medicalrep@hetero.com": {"password": "MedicalRep@2026", "name": "MedicalRep"},
-}
 
 
 def normalize_participant_type(payload):
@@ -139,20 +133,20 @@ def login():
     user_id = str(payload.get("user_id") or payload.get("username") or "").strip()
     password = str(payload.get("password") or "").strip()
     if user_id and password:
-        admin_account = ADMIN_CREDENTIALS.get(user_id.lower())
-        if admin_account and password == admin_account["password"]:
+        admin_account = current_app.config.get("ADMIN_CREDENTIALS", {}).get(user_id.lower())
+        if admin_account and compare_digest(password, admin_account["password"]):
             token = create_access_token(identity=user_id.lower(), additional_claims={"role": "admin"})
             return {"token": token, "role": "admin", "admin": {"name": admin_account["name"]}}
         if (
             user_id == current_app.config["SUPER_ADMIN_USER_ID"]
             and current_app.config["SUPER_ADMIN_PASSWORD"]
-            and password == current_app.config["SUPER_ADMIN_PASSWORD"]
+            and compare_digest(password, current_app.config["SUPER_ADMIN_PASSWORD"])
         ):
             token = create_access_token(identity="super_admin", additional_claims={"role": "super_admin"})
             return {"token": token, "role": "super_admin", "admin": {"name": "Super Admin"}}
         return {"message": "Enter valid user ID and password."}, 401
     admin_value = str(payload.get("admin_code") or payload.get("code") or "").strip()
-    if admin_value and admin_value == current_app.config["ADMIN_SECRET_CODE"]:
+    if admin_value and compare_digest(admin_value, current_app.config["ADMIN_SECRET_CODE"]):
         token = create_access_token(identity="super_admin", additional_claims={"role": "super_admin"})
         return {"token": token, "role": "super_admin", "admin": {"name": "Super Admin"}}
     return {"message": "Enter valid login details."}, 401

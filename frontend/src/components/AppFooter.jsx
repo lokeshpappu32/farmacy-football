@@ -1,4 +1,5 @@
 import LanguageTranslator from "./LanguageTranslator";
+import { useLanguage } from "../context/LanguageContext";
 
 const clientLogos = [
   { src: "/images/client-logos/amarox.png", alt: "Amarox" },
@@ -9,6 +10,7 @@ const clientLogos = [
 ];
 
 export default function AppFooter({ compact = false, showClientLogos = false }) {
+  const { t } = useLanguage();
   return (
     <div className={`relative z-10 mt-auto ${compact ? "pt-2" : "pt-8"}`}>
       <LanguageTranslator />
@@ -24,11 +26,11 @@ export default function AppFooter({ compact = false, showClientLogos = false }) 
         </div>
       )}
       <p className="mx-auto max-w-7xl px-4 pb-1 text-center text-[8px] font-medium leading-tight text-[#ffffff4d]">
-        Disclaimer: By participating, you acknowledge and accept the applicable Terms, Conditions, and platform policies.
+        {t("footer.disclaimer", "Disclaimer: By participating, you acknowledge and accept the applicable Terms, Conditions, and platform policies.")}
       </p>
       <footer className={`border-t border-white/10 bg-black/45 px-4 text-center text-xs font-semibold text-white md:text-sm ${compact ? "py-2" : "py-4"}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-center">
-          <span>Copyright © 2026 Hetero. All rights reserved.</span>
+          <span>{t("footer.copyright", "Copyright © 2026 Hetero. All rights reserved.")}</span>
         </div>
       </footer>
     </div>

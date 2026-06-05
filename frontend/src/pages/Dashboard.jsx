@@ -9,10 +9,13 @@ import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 import IdentityHeader from "../components/IdentityHeader";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { addHours, formatDate, formatDateTime } from "../utils/datetime";
+import { localizeMessage } from "../utils/messages";
 
 export default function Dashboard() {
   const { role } = useAuth();
+  const { t } = useLanguage();
   const today = new Date();
   const clientDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const { data, loading, error, refresh } = useApi(
@@ -37,10 +40,10 @@ export default function Dashboard() {
       };
       if (prediction) await api.put(`/predictions/${prediction.id}`, payload);
       else await api.post("/predictions", payload);
-      setToast("Prediction saved. You can edit until kickoff.");
+      setToast(t("toast.predictionSaved", "Prediction saved. You can edit until kickoff."));
       refresh();
     } catch (err) {
-      setToast(err.message);
+      setToast(localizeMessage(err.message, t));
     }
   };
 
@@ -53,7 +56,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <IdentityHeader nameLabel={role === "hetero_rep" ? "Participant name" : "Name of the Farmacist"} />
+      <IdentityHeader nameLabel={role === "hetero_rep" ? t("identity.participantName", "Participant name") : t("identity.nameFarmacist", "Name of the Farmacist")} />
       <Toast message={toast} onClose={() => setToast("")} tone={toast.includes("saved") ? "gold" : "error"} />
       <Announcements announcements={data?.announcements || []} />
 {/* 
@@ -97,28 +100,30 @@ export default function Dashboard() {
 }
 
 function NoOpenMatches({ nextMatch }) {
+  const { t } = useLanguage();
   const predictionOpenDate = nextMatch?.match_datetime ? addHours(nextMatch.match_datetime, -48) : null;
 
   return (
     <div className="glass rounded-3xl p-8 text-center">
-      <div className="text-xl font-black">No matches are open yet.</div>
+      <div className="text-xl font-black">{t("dashboard.noMatchesOpen", "No matches are open yet.")}</div>
       {nextMatch ? (
         <div className="mx-auto mt-4 max-w-2xl space-y-2 text-base font-bold text-white/75 md:text-lg">
-          <p>The first match is happening on {formatDate(nextMatch.match_datetime)}.</p>
-          <p>You can start choosing your favourite team on {formatDate(predictionOpenDate)}.</p>
+          <p>{t("dashboard.firstMatch", "The first match is happening on {{date}}.", { date: formatDate(nextMatch.match_datetime) })}</p>
+          <p>{t("dashboard.youCanChoose", "You can start choosing your favourite team on {{date}}.", { date: formatDate(predictionOpenDate) })}</p>
         </div>
       ) : (
-        <p className="mt-3 text-base font-bold text-white/65">Upcoming match details will be available soon.</p>
+        <p className="mt-3 text-base font-bold text-white/65">{t("dashboard.upcomingDetailsSoon", "Upcoming match details will be available soon.")}</p>
       )}
     </div>
   );
 }
 
 function Announcements({ announcements }) {
+  const { t } = useLanguage();
   if (!announcements.length) return null;
   return (
     <section className="glass rounded-3xl p-4 md:p-5">
-      <div className="mb-3 flex items-center gap-2 text-gold"><FaBell /> <span className="font-black">Latest match updates</span></div>
+      <div className="mb-3 flex items-center gap-2 text-gold"><FaBell /> <span className="font-black">{t("dashboard.latestMatchUpdates", "Latest match updates")}</span></div>
       <div className="space-y-2">
         {announcements.map((item) => (
           <div key={item.id} className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-sm text-white/85">
@@ -131,14 +136,15 @@ function Announcements({ announcements }) {
 }
 
 function AwaitingResults({ matches, predictions, drafts, onDraft, onSubmit }) {
+  const { t } = useLanguage();
   if (!matches.length) return null;
 
   return (
     <section className="space-y-4 pt-4">
       <div>
-        <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaBell /> Awaiting Result Update</p>
-        <h2 className="mt-2 text-2xl font-black md:text-3xl">Previous Matches Pending Result</h2>
-        <p className="mt-2 text-sm text-white/60">These matches have started, so answers are locked until the result is updated by admin or API.</p>
+        <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold"><FaBell /> {t("dashboard.awaitingResultUpdate", "Awaiting Result Update")}</p>
+        <h2 className="mt-2 text-2xl font-black md:text-3xl">{t("dashboard.previousMatchesPending", "Previous Matches Pending Result")}</h2>
+        <p className="mt-2 text-sm text-white/60">{t("dashboard.pendingResultCopy", "These matches have started, so answers are locked until the result is updated by admin or API.")}</p>
       </div>
       <div className="grid gap-6">
         {matches.map((match, index) => (
@@ -158,6 +164,7 @@ function AwaitingResults({ matches, predictions, drafts, onDraft, onSubmit }) {
 }
 
 function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, index }) {
+  const { t } = useLanguage();
   const selectedTeam = draft.predicted_team || prediction?.predicted_team || "";
   const selectedDrug = draft.favorite_drug ?? prediction?.favorite_drug ?? "";
   const isLocked = new Date(match.match_datetime).getTime() <= Date.now();
@@ -181,7 +188,7 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
             <span className={`mt-3 inline-flex rounded-full border px-8 py-1 text-base font-black ${
               prediction ? "border-red-500 bg-red-50 text-red-600" : "border-red-500 text-red-600"
             }`}>
-              {prediction ? "Participated" : "Participate Now"}
+              {prediction ? t("dashboard.participated", "Participated") : t("dashboard.participateNow", "Participate Now")}
             </span>
           </div>
         </div>
@@ -197,9 +204,9 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
           <div className="mx-auto mt-8 max-w-lg">
             {(match.venue_name || match.venue_location) && (
               <div className="mb-3 text-center text-xs font-semibold text-white/70">
-                {match.venue_name && <span><span className="text-gold">Stadium:</span> {match.venue_name}</span>}
+                {match.venue_name && <span><span className="text-gold">{t("common.stadium", "Stadium")}:</span> {match.venue_name}</span>}
                 {match.venue_name && match.venue_location && <span className="px-2 text-white/30">|</span>}
-                {match.venue_location && <span><span className="text-gold">Location:</span> {match.venue_location}</span>}
+                {match.venue_location && <span><span className="text-gold">{t("common.location", "Location")}:</span> {match.venue_location}</span>}
               </div>
             )}
             <CountdownTimer target={match.match_datetime} />
@@ -207,10 +214,10 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
         </div>
 
         <div className="p-2 md:p-4">
-          <div className="mb-5 flex items-center gap-2 text-white"><FaStar /> <span className="font-black">My favourite Team Today</span></div>
+          <div className="mb-5 flex items-center gap-2 text-white"><FaStar /> <span className="font-black">{t("dashboard.favoriteTeamToday", "My favourite Team Today")}</span></div>
           {prediction && (
             <div className="mb-4 rounded-xl border border-white/20 bg-white/10 p-3 text-sm">
-              Current pick: <b>{prediction.predicted_team}</b> with <b>{prediction.favorite_drug}</b>
+              {t("dashboard.currentPickPrefix", "Current pick:")} <b>{prediction.predicted_team}</b> {t("dashboard.with", "with")} <b>{prediction.favorite_drug}</b>
             </div>
           )}
           <div className="space-y-4">
@@ -231,12 +238,12 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
                     className="match-choice-text"
                     style={{ fontSize: `clamp(0.68rem, ${Math.max(0.82, Math.min(1.12, 7 / String(name).length))}vw, 1.08rem)` }}
                   >
-                    {name}
+                    {name === "Draw" ? t("common.draw", "Draw") : name}
                   </span>
                 </button>
               ))}
             </div>
-            <label className="block text-lg font-black">My favourite HETERO Brand Today</label>
+            <label className="block text-lg font-black">{t("dashboard.favoriteHeteroBrandToday", "My favourite HETERO Brand Today")}</label>
             <input
               className="enroll-input rounded-full"
               value={selectedDrug}
@@ -245,7 +252,7 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
               placeholder="Xxxxxxxxxxxxxxx"
             />
             <button disabled={!canEdit} onClick={() => onSubmit(match)} className="w-full rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-8 py-4 text-3xl font-black text-white disabled:cursor-not-allowed disabled:opacity-70">
-              {isLocked ? (prediction ? "Locked" : "Not Eligible") : prediction ? "Update" : "Participate"}
+              {isLocked ? (prediction ? t("dashboard.locked", "Locked") : t("dashboard.notEligible", "Not Eligible")) : prediction ? t("dashboard.update", "Update") : t("dashboard.participate", "Participate")}
             </button>
           </div>
         </div>

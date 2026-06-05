@@ -2,11 +2,13 @@ import { useCallback, useMemo, useState } from "react";
 import { FaCapsules, FaFilter, FaPills, FaUsers } from "react-icons/fa";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StatCard from "../components/StatCard";
+import { useLanguage } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 import { formatDateTime } from "../utils/datetime";
 
 export default function AdminDrugAnalytics() {
+  const { t } = useLanguage();
   const [filters, setFilters] = useState({ country: "", city: "", mr_id: "", sort: "most" });
   const drugRequest = useCallback(async () => {
     const params = new URLSearchParams();
@@ -46,34 +48,34 @@ export default function AdminDrugAnalytics() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black">Drug Analytics</h1>
+        <h1 className="text-3xl font-black">{t("admin.drugAnalytics", "Drug Analytics")}</h1>
         <p className="mt-2 text-white/60">Favorite Hetero drug responses, filtered by country, city, and MR ID.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Top Drug" value={insights.topDrug?.favorite_drug || "-"} icon={FaPills} />
-        <StatCard label="Selections" value={insights.topDrug?.selection_count || 0} icon={FaCapsules} />
-        <StatCard label="Unique Users" value={insights.uniqueUsers} icon={FaUsers} />
+        <StatCard label={t("admin.topDrug", "Top Drug")} value={insights.topDrug?.favorite_drug || "-"} icon={FaPills} />
+        <StatCard label={t("admin.selections", "Selections")} value={insights.topDrug?.selection_count || 0} icon={FaCapsules} />
+        <StatCard label={t("admin.uniqueUsers", "Unique Users")} value={insights.uniqueUsers} icon={FaUsers} />
         <StatCard label="Pending Results" value={insights.pending} icon={FaFilter} />
       </div>
 
       <section className="glass rounded-3xl p-4 md:p-6">
         <div className="grid gap-4 xl:grid-cols-[minmax(220px,420px)_1fr] xl:items-end">
           <div className="min-w-0">
-            <h2 className="text-xl font-black">Filters</h2>
+            <h2 className="text-xl font-black">{t("admin.filters", "Filters")}</h2>
             <p className="text-sm text-white/55">Use these filters to find country-wise, city-wise, or MR-wise drug preference.</p>
           </div>
           <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <select className="input" value={filters.country} onChange={(event) => setFilters((current) => ({ ...current, country: event.target.value, city: "" }))}>
-              <option className="bg-black" value="">All countries</option>
+              <option className="bg-black" value="">{t("common.allCountries", "All countries")}</option>
               {(data?.countries || []).map((country) => <option className="bg-black" key={country} value={country}>{country}</option>)}
             </select>
             <select className="input" value={filters.city} onChange={(event) => setFilters((current) => ({ ...current, city: event.target.value }))}>
-              <option className="bg-black" value="">All cities</option>
+              <option className="bg-black" value="">{t("admin.allCities", "All cities")}</option>
               {(data?.cities || []).map((city) => <option className="bg-black" key={city} value={city}>{city}</option>)}
             </select>
             <select className="input" value={filters.mr_id} onChange={(event) => setFilters((current) => ({ ...current, mr_id: event.target.value }))}>
-              <option className="bg-black" value="">All MRs</option>
+              <option className="bg-black" value="">{t("admin.allMrs", "All MRs")}</option>
               {(data?.mr_ids || []).map((mr) => <option className="bg-black" key={mr} value={mr}>{mr}</option>)}
             </select>
             <select className="input" value={filters.sort} onChange={(event) => setFilters((current) => ({ ...current, sort: event.target.value }))}>
@@ -117,7 +119,7 @@ export default function AdminDrugAnalytics() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="w-fit shrink-0 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">{answers.length} rows</span>
-              <button className="btn-primary" onClick={exportAnswers}>Export CSV</button>
+              <button className="btn-primary" onClick={exportAnswers}>{t("admin.exportCsv", "Export CSV")}</button>
             </div>
           </div>
           <div className="scroll-panel max-h-[560px] min-w-0 overflow-auto rounded-2xl border border-white/10">

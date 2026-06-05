@@ -4,20 +4,22 @@ import AppFooter from "../components/AppFooter";
 import FootballLogo from "../components/FootballLogo";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import { rememberSelectedCountry } from "../utils/language";
+import { localizeMessage } from "../utils/messages";
 
 const fallbackCountries = [{ name: "India", iso_code: "IN", country_code: "+91", label: "India (+91)" }];
 const mrEnrollmentMessage = "Kindly ask your Hetero Representative to enroll first using his/her mobile number.";
 const participantLabels = {
-  farmacy_owner: "Farmacy Owner",
-  farmacy_head_supervisor: "Farmacy Head / Supervisor",
-  farmacy_head: "Farmacy Head",
-  farmacy_supervisor: "Farmacy Supervisor",
-  farmacy_sales_staff: "Farmacy Sales Staff",
-  hetero_representative_staff: "HETERO Representative / Staff",
-  hetero_staff: "HETERO Staff",
-  hetero_representative: "HETERO Representative",
+  farmacy_owner: ["participant.farmacyOwner", "Farmacy Owner"],
+  farmacy_head_supervisor: ["participant.farmacyHeadSupervisor", "Farmacy Head / Supervisor"],
+  farmacy_head: ["participant.farmacyHead", "Farmacy Head"],
+  farmacy_supervisor: ["participant.farmacyHeadSupervisor", "Farmacy Supervisor"],
+  farmacy_sales_staff: ["participant.farmacySalesStaff", "Farmacy Sales Staff"],
+  hetero_representative_staff: ["participant.heteroRepresentativeStaff", "HETERO Representative / Staff"],
+  hetero_staff: ["participant.heteroStaff", "HETERO Staff"],
+  hetero_representative: ["participant.heteroRepresentative", "HETERO Representative"],
 };
 const participantTypes = new Set(Object.keys(participantLabels));
 const participantAliases = {
@@ -56,6 +58,7 @@ const termsText = [
   "By proceeding with registration or participation, each participant confirms that they have read, understood, accepted, and agreed to these Terms, Conditions & Disclaimer in their entirety.",
 ];
 export default function Enroll() {
+  const { t } = useLanguage();
   const [params] = useSearchParams();
   const requestedType = (params.get("participant_type") || "").toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
   const normalizedRequestedType = participantAliases[requestedType] || requestedType;
@@ -168,9 +171,9 @@ export default function Enroll() {
       navigate("/dashboard");
     } catch (err) {
       if (err.message === mrEnrollmentMessage) {
-        setRepEnrollmentPopup(err.message);
+        setRepEnrollmentPopup(localizeMessage(err.message, t));
       } else {
-        setError(err.message);
+        setError(localizeMessage(err.message, t));
       }
     } finally {
       setLoading(false);
@@ -193,24 +196,24 @@ export default function Enroll() {
         <FootballLogo compact={false} className="mx-auto mb-10 max-w-[260px] sm:mb-16 sm:max-w-[420px]" />
 
         <div className={`grid min-w-0 gap-x-10 gap-y-6 ${heteroTypes.has(form.participant_type) ? "mx-auto w-full max-w-md md:grid-cols-1" : "w-full md:grid-cols-2"}`}>
-          <Field label={`Name of ${participantLabels[form.participant_type] || "Participant"}`}>
+          <Field label={t("enroll.nameOf", `Name of ${participantLabel(t, form.participant_type)}`, { type: participantLabel(t, form.participant_type) })}>
             <input className="enroll-input" required value={form.full_name} onChange={(event) => update("full_name", event.target.value)} />
           </Field>
           {pharmacyTypes.has(form.participant_type) && (
-            <Field label="Name of Farmacy">
+            <Field label={t("enroll.pharmacyName", "Name of Farmacy")}>
               <input className="enroll-input" required value={form.pharmacy_name} onChange={(event) => update("pharmacy_name", event.target.value)} />
             </Field>
           )}
-          <Field label="Country">
+          <Field label={t("common.country", "Country")}>
             <div className="relative min-w-0">
               <div className="flex h-[42px] w-full min-w-0 overflow-hidden rounded-[10px] border border-white/25 bg-[rgba(239,244,236,.9)] focus-within:border-white/85 focus-within:shadow-[0_0_0_4px_rgba(255,255,255,.12)]">
                 <span className="flex w-[70px] shrink-0 items-center justify-center border-r border-black/10 px-2 text-sm font-black text-red-700 sm:w-[76px]">
-                  {form.country_code || "Code"}
+                  {form.country_code || t("enroll.countryCode", "Code")}
                 </span>
                 <input
                   className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[#050608] outline-none placeholder:text-black/45"
                   required
-                  placeholder="Search country or code"
+                  placeholder={t("enroll.countrySearch", "Search country or code")}
                   value={countryQuery}
                   onChange={(event) => {
                     updateCountry(event.target.value);
@@ -239,13 +242,13 @@ export default function Enroll() {
                       </button>
                     ))
                   ) : (
-                    <div className="px-3 py-3 text-sm font-semibold text-white/55">No countries found</div>
+                    <div className="px-3 py-3 text-sm font-semibold text-white/55">{t("common.noCountriesFound", "No countries found")}</div>
                   )}
                 </div>
               )}
             </div>
           </Field>
-          <Field label="Mobile Number">
+          <Field label={t("common.mobileNumber", "Mobile Number")}>
             <input
               className="enroll-input"
               required
@@ -254,16 +257,16 @@ export default function Enroll() {
               title="Enter 7 to 15 digits only."
               value={form.mobile_number}
               onChange={(event) => update("mobile_number", event.target.value.replace(/\D/g, ""))}
-              onBlur={() => confirmMobileIfReady("mobile_number", "Mobile Number")}
+              onBlur={() => confirmMobileIfReady("mobile_number", t("common.mobileNumber", "Mobile Number"))}
               name="mobile_number"
             />
           </Field>
           {pharmacyTypes.has(form.participant_type) && (
             <>
-              <Field label="HETERO Rep. Name">
+              <Field label={t("enroll.heteroRepName", "HETERO Rep. Name")}>
                 <input className="enroll-input" required value={form.medical_rep_name} onChange={(event) => update("medical_rep_name", event.target.value)} />
               </Field>
-              <Field label="HETERO Rep. Mobile Number">
+              <Field label={t("enroll.heteroRepMobile", "HETERO Rep. Mobile Number")}>
                 <input
                   className="enroll-input"
                   required
@@ -272,7 +275,7 @@ export default function Enroll() {
                   title="Enter 7 to 15 digits only."
                   value={form.medical_rep_mobile_number}
                   onChange={(event) => update("medical_rep_mobile_number", event.target.value.replace(/\D/g, ""))}
-                  onBlur={() => confirmMobileIfReady("medical_rep_mobile_number", "HETERO Rep. Mobile Number")}
+                  onBlur={() => confirmMobileIfReady("medical_rep_mobile_number", t("enroll.heteroRepMobile", "HETERO Rep. Mobile Number"))}
                   name="medical_rep_mobile_number"
                 />
               </Field>
@@ -289,15 +292,15 @@ export default function Enroll() {
           />
           <span className="terms-checkbox-mark" aria-hidden="true" />
           <span className="min-w-0 flex-1 leading-snug sm:flex-none">
-            I accept the{" "}
+            {t("enroll.acceptTerms", "I accept the")}{" "}
             <button type="button" className="whitespace-normal break-words text-left underline" onClick={() => setShowTerms(true)}>
-              terms and conditions
+              {t("enroll.terms", "terms and conditions")}
             </button>
           </span>
         </label>
 
         <button className="enroll-submit-btn mx-auto mt-8 block w-full max-w-2xl rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-4 py-4 font-black uppercase leading-tight text-white shadow-[0_16px_34px_rgba(0,0,0,0.35)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70 sm:px-8" disabled={loading}>
-          {loading ? "Enrolling..." : "Enroll and get 100 points"}
+          {loading ? t("enroll.buttonLoading", "Enrolling...") : t("enroll.button", "Enroll and get 100 points")}
         </button>
       </form>
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
@@ -324,15 +327,17 @@ function Field({ label, children }) {
 }
 
 function TermsModal({ onClose }) {
+  const { t, tList } = useLanguage();
+  const translatedTerms = tList("terms.paragraphs", termsText);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
       <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[#07120d] text-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h2 className="text-xl font-black">TERMS, CONDITIONS & DISCLAIMER</h2>
+          <h2 className="text-xl font-black">{t("enroll.termsTitle", "TERMS, CONDITIONS & DISCLAIMER")}</h2>
           <button type="button" className="rounded-full bg-white/10 px-3 py-1 text-xl" onClick={onClose} aria-label="Close terms">x</button>
         </div>
         <div className="scroll-panel max-h-[68vh] space-y-4 overflow-y-auto px-5 py-4">
-          {termsText.map((copy, index) => (
+          {translatedTerms.map((copy, index) => (
             <p key={index} className="text-sm leading-6 text-white/75">{copy}</p>
           ))}
         </div>
@@ -342,23 +347,29 @@ function TermsModal({ onClose }) {
 }
 
 function MobileConfirmModal({ label, number, onConfirm, onEdit }) {
+  const { t } = useLanguage();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
       <div className="w-full max-w-md rounded-3xl border border-gold/25 bg-[#07120d] p-5 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,.5)]">
         <h2 className="text-2xl font-black">{label}</h2>
-        <p className="mt-3 text-sm text-white/65">Please confirm this mobile number is correct.</p>
+        <p className="mt-3 text-sm text-white/65">{t("enroll.mobileConfirmCopy", "Please confirm this mobile number is correct.")}</p>
         <div className="mt-5 rounded-2xl border border-white/12 bg-white/10 px-4 py-4 text-2xl font-black text-gold">
           {number}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button type="button" className="btn-ghost" onClick={onEdit}>
-            Edit
+            {t("common.edit", "Edit")}
           </button>
           <button type="button" className="btn-primary" onClick={onConfirm}>
-            Correct
+            {t("common.correct", "Correct")}
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+function participantLabel(t, type) {
+  const option = participantLabels[type];
+  return option ? t(option[0], option[1]) : t("common.participant", "Participant");
 }

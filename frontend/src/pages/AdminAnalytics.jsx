@@ -1,10 +1,12 @@
 import { FaBullseye, FaCity, FaMapMarkedAlt, FaUsers } from "react-icons/fa";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StatCard from "../components/StatCard";
+import { useLanguage } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 
 export default function AdminAnalytics() {
+  const { t } = useLanguage();
   const { data, loading, error } = useApi(async () => (await api.get("/admin/analytics")).data, []);
 
   if (loading) return <LoadingSkeleton rows={5} />;
@@ -22,15 +24,15 @@ export default function AdminAnalytics() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black">Country & City Analytics</h1>
-        <p className="mt-2 text-white/60">Geography-wise enrollment, participation, points, and prediction accuracy.</p>
+        <h1 className="text-3xl font-black">{t("admin.analyticsTitle", "Country & City Analytics")}</h1>
+        <p className="mt-2 text-white/60">{t("admin.analyticsCopy", "Geography-wise enrollment, participation, points, and prediction accuracy.")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Participants" value={data.total_participants} icon={FaUsers} />
-        <StatCard label="Active Rate" value={`${data.participation_rate || 0}%`} icon={FaBullseye} />
-        <StatCard label="Top Country" value={topCountry?.country || "-"} icon={FaMapMarkedAlt} />
-        <StatCard label="Top City" value={topCity?.city || "-"} icon={FaCity} />
+        <StatCard label={t("admin.participants", "Participants")} value={data.total_participants} icon={FaUsers} />
+        <StatCard label={t("admin.activeRate", "Active Rate")} value={`${data.participation_rate || 0}%`} icon={FaBullseye} />
+        <StatCard label={t("admin.topCountry", "Top Country")} value={topCountry?.country || "-"} icon={FaMapMarkedAlt} />
+        <StatCard label={t("admin.topCity", "Top City")} value={topCity?.city || "-"} icon={FaCity} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-4">

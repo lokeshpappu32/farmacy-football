@@ -12,9 +12,11 @@
     "@vitejs/plugin-react": "latest",
     "axios": "latest",
     "framer-motion": "latest",
+    "i18next": "^26.3.1",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-i18next": "^17.0.8",
     "react-icons": "latest",
     "react-router-dom": "latest",
     "vite": "latest"
