@@ -6,6 +6,7 @@ import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
+import { homeForRole } from "../utils/auth";
 import { rememberSelectedCountry } from "../utils/language";
 import { localizeMessage } from "../utils/messages";
 
@@ -84,8 +85,12 @@ export default function Enroll() {
   const [mobileConfirm, setMobileConfirm] = useState(null);
   const [confirmedMobiles, setConfirmedMobiles] = useState({});
   const [loading, setLoading] = useState(false);
-  const { enroll } = useAuth();
+  const { enroll, isAuthed, role } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthed) navigate(homeForRole(role), { replace: true });
+  }, [isAuthed, role, navigate]);
 
   useEffect(() => {
     api.get("/countries")
@@ -167,8 +172,8 @@ export default function Enroll() {
             medical_rep_mobile_number: form.mobile_number,
           }
         : form;
-      await enroll(payload);
-      navigate("/dashboard");
+      const data = await enroll(payload);
+      navigate(homeForRole(data.role), { replace: true });
     } catch (err) {
       if (err.message === mrEnrollmentMessage) {
         setRepEnrollmentPopup(localizeMessage(err.message, t));
