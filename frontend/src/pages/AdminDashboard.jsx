@@ -2,11 +2,13 @@ import { useState } from "react";
 import { FaUsers, FaFutbol, FaClipboardList, FaBullseye } from "react-icons/fa";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import StatCard from "../components/StatCard";
+import { useLanguage } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 import { formatDateTime } from "../utils/datetime";
 
 export default function AdminDashboard() {
+  const { t } = useLanguage();
   const [pages, setPages] = useState({ adminLogs: 1, apiLogs: 1 });
   const { data, loading, error, refresh } = useApi(
     async () => (
@@ -27,16 +29,16 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-black">Admin Command Center</h1>
-          <p className="text-white/60">Campaign operations across matches, users, points, and analytics.</p>
+          <h1 className="text-3xl font-black">{t("admin.commandCenter", "Admin Command Center")}</h1>
+          <p className="text-white/60">{t("admin.commandCopy", "Campaign operations across matches, users, points, and analytics.")}</p>
         </div>
-        <div className="flex gap-2"><button onClick={sync} className="btn-primary">Sync Matches</button></div>
+        <div className="flex gap-2"><button onClick={sync} className="btn-primary">{t("admin.syncMatches", "Sync Matches")}</button></div>
       </div>
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Participants" value={data.total_participants} icon={FaUsers} />
-        <StatCard label="Predictions" value={data.total_predictions} icon={FaClipboardList} />
+        <StatCard label={t("admin.participants", "Participants")} value={data.total_participants} icon={FaUsers} />
+        <StatCard label={t("admin.predictions", "Predictions")} value={data.total_predictions} icon={FaClipboardList} />
         <StatCard label="Participation" value={`${data.participation_rate || 0}%`} icon={FaFutbol} />
-        <StatCard label="Accuracy" value={`${data.accuracy || 0}%`} icon={FaBullseye} />
+        <StatCard label={t("admin.accuracy", "Accuracy")} value={`${data.accuracy || 0}%`} icon={FaBullseye} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <AnalyticsList title="HETERO Representative / Staff Performance" rows={data.mr_analytics || []} labelKey="medical_rep_name" />
@@ -182,6 +184,7 @@ function CountBadge({ count, label }) {
 }
 
 function InlinePagination({ meta, onPage }) {
+  const { t } = useLanguage();
   const currentPage = meta.page || 1;
   const totalPages = Math.max(meta.pages || 1, 1);
   return (
@@ -191,7 +194,7 @@ function InlinePagination({ meta, onPage }) {
         disabled={!meta.has_prev}
         onClick={() => onPage(currentPage - 1)}
       >
-        Prev
+        {t("schedule.previous", "Prev")}
       </button>
       <span className="min-w-12 text-center text-xs font-bold text-white/60">
         {currentPage}/{totalPages}
@@ -201,7 +204,7 @@ function InlinePagination({ meta, onPage }) {
         disabled={!meta.has_next}
         onClick={() => onPage(currentPage + 1)}
       >
-        Next
+        {t("schedule.next", "Next")}
       </button>
     </div>
   );

@@ -4,13 +4,16 @@ import AppFooter from "../components/AppFooter";
 import FootballLogo from "../components/FootballLogo";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import { homeForRole } from "../utils/auth";
 import { rememberSelectedCountry } from "../utils/language";
+import { localizeMessage } from "../utils/messages";
 
 const fallbackCountries = [{ name: "India", iso_code: "IN", country_code: "+91", label: "India (+91)" }];
 
 export default function UserLogin() {
+  const { t } = useLanguage();
   const [countries, setCountries] = useState(fallbackCountries);
   const [countryName, setCountryName] = useState("");
   const [showCountryList, setShowCountryList] = useState(false);
@@ -67,7 +70,7 @@ export default function UserLogin() {
       const data = await userLogin(form);
       navigate(homeForRole(data.role), { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(localizeMessage(err.message, t));
     } finally {
       setLoading(false);
     }
@@ -83,14 +86,14 @@ export default function UserLogin() {
       <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-8">
         <form onSubmit={submit} noValidate className="glass w-full max-w-md rounded-[28px] p-5 text-center sm:rounded-[32px] sm:p-8">
           <FootballLogo compact className="mx-auto mb-8" />
-          <h1 className="text-3xl font-black">Participant Login</h1>
-          <p className="mt-2 text-sm text-white/65">Use this only if your enrolled device is not available.</p>
+          <h1 className="text-3xl font-black">{t("login.participantTitle", "Participant Login")}</h1>
+          <p className="mt-2 text-sm text-white/65">{t("login.participantCopy", "Use this only if your enrolled device is not available.")}</p>
 
-          <label className="mt-8 block text-left text-sm font-bold">Country code</label>
+          <label className="mt-8 block text-left text-sm font-bold">{t("enroll.countryCode", "Country code")}</label>
           <div className="relative mt-2 min-w-0 text-left">
             <div className="flex overflow-hidden rounded-xl border border-white/15 bg-black/45 focus-within:border-gold/70 focus-within:shadow-[0_0_0_3px_rgba(248,201,69,.14)]">
               <span className="flex w-[70px] shrink-0 items-center justify-center border-r border-white/10 px-2 text-sm font-black text-gold sm:w-[76px] sm:px-3">
-                {form.country_code || "Code"}
+                {form.country_code || t("enroll.countryCode", "Code")}
               </span>
               <input
                 className="min-w-0 flex-1 bg-transparent px-4 py-3 text-white outline-none placeholder:text-white/45"
@@ -101,7 +104,7 @@ export default function UserLogin() {
                 }}
                 onFocus={() => setShowCountryList(true)}
                 onBlur={() => window.setTimeout(() => setShowCountryList(false), 140)}
-                placeholder="Search country or code"
+                placeholder={t("enroll.countrySearch", "Search country or code")}
                 autoComplete="off"
               />
             </div>
@@ -123,22 +126,22 @@ export default function UserLogin() {
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-3 text-sm font-semibold text-white/55">No countries found</div>
+                  <div className="px-3 py-3 text-sm font-semibold text-white/55">{t("common.noCountriesFound", "No countries found")}</div>
                 )}
               </div>
             )}
             </div>
 
-          <label className="mt-5 block text-left text-sm font-bold">Registered mobile number</label>
+          <label className="mt-5 block text-left text-sm font-bold">{t("common.mobileNumber", "Registered mobile number")}</label>
           <input
             className="input mt-2"
             value={form.mobile_number}
             onChange={(event) => setForm((current) => ({ ...current, mobile_number: event.target.value.replace(/\D/g, "") }))}
             inputMode="numeric"
             pattern="[0-9]{7,15}"
-            placeholder="Enter mobile number"
+            placeholder={t("common.mobileNumber", "Enter mobile number")}
           />
-          <button className="btn-primary mt-6 w-full" disabled={loading}>{loading ? "Checking..." : "Login"}</button>
+          <button className="btn-primary mt-6 w-full" disabled={loading}>{loading ? t("login.checking", "Checking...") : t("common.login", "Login")}</button>
         </form>
       </div>
       <AppFooter />

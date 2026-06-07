@@ -3,42 +3,44 @@ import { useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import AppFooter from "../components/AppFooter";
 import FootballLogo from "../components/FootballLogo";
+import { useLanguage } from "../context/LanguageContext";
 
 const userLinks = [
-  ["My Dashboard", "/dashboard"],
-  ["Schedule", "/schedule"],
-  ["My Performance", "/performance"],
-  ["My Standing", "/leaderboard"],
-  ["Points System", "/rules"],
+  ["navigation.myDashboard", "My Dashboard", "/dashboard"],
+  ["navigation.schedule", "Schedule", "/schedule"],
+  ["navigation.myPerformance", "My Performance", "/performance"],
+  ["navigation.myStanding", "My Standing", "/leaderboard"],
+  ["navigation.pointsSystem", "Points System", "/rules"],
 ];
 
 const adminLinks = [
-  ["Global Performance", "/admin"],
-  ["HETERO Staff Standing", "/admin/standing"],
-  ["Farmacists Standing", "/admin/farmacists-standing"],
-  ["Schedule", "/admin/schedule"],
-  ["Users", "/admin/users"],
+  ["navigation.globalPerformance", "Global Performance", "/admin"],
+  ["navigation.myStanding", "HETERO Staff Standing", "/admin/standing"],
+  ["navigation.farmacistStanding", "Farmacists Standing", "/admin/farmacists-standing"],
+  ["navigation.schedule", "Schedule", "/admin/schedule"],
+  ["navigation.users", "Users", "/admin/users"],
 ];
 
 const repLinks = [
-  ["My Dashboard", "/rep/dashboard"],
-  ["Schedule", "/rep/schedule"],
-  ["My Performance", "/rep/performance"],
-  ["My Standing", "/rep/standing"],
-  ["Farmacist Standing", "/rep/farmacist-standing"],
-  ["Points System", "/rep/rules"],
+  ["navigation.myDashboard", "My Dashboard", "/rep/dashboard"],
+  ["navigation.schedule", "Schedule", "/rep/schedule"],
+  ["navigation.myPerformance", "My Performance", "/rep/performance"],
+  ["navigation.myStanding", "My Standing", "/rep/standing"],
+  ["navigation.farmacistStanding", "Farmacist Standing", "/rep/farmacist-standing"],
+  ["navigation.pointsSystem", "Points System", "/rep/rules"],
 ];
 
 const superAdminLinks = [
-  ["Dashboard", "/super-admin"],
-  ["Matches", "/super-admin/matches"],
-  ["Users", "/super-admin/users"],
-  ["Country/City", "/super-admin/analytics"],
-  ["Drug Analytics", "/super-admin/drug-analytics"],
+  ["navigation.dashboard", "Dashboard", "/super-admin"],
+  ["navigation.matches", "Matches", "/super-admin/matches"],
+  ["navigation.users", "Users", "/super-admin/users"],
+  ["navigation.countryCity", "Country/City", "/super-admin/analytics"],
+  ["navigation.drugAnalytics", "Drug Analytics", "/super-admin/drug-analytics"],
 ];
 
 export default function AppShell({ mode = "user" }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
   const links = mode === "super-admin" ? superAdminLinks : mode === "admin" ? adminLinks : mode === "rep" ? repLinks : userLinks;
   const home = mode === "super-admin" ? "/super-admin" : mode === "admin" ? "/admin" : mode === "rep" ? "/rep/dashboard" : "/dashboard";
 
@@ -58,9 +60,9 @@ export default function AppShell({ mode = "user" }) {
             {open ? <FiX /> : <FiMenu />}
           </button>
           <div className="hidden min-w-0 items-center justify-center gap-1.5 md:flex lg:gap-2">
-            {links.map(([label, path]) => (
+            {links.map(([key, label, path]) => (
               <NavLink key={path} to={path} end className={({ isActive }) => `flex h-8 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-md px-1.5 text-center text-[10px] font-semibold leading-none shadow-sm transition lg:h-9 lg:px-2 lg:text-[11px] xl:px-2.5 xl:text-xs ${isActive ? "bg-white/80 text-black" : "bg-white/10 text-white hover:bg-white/18"}`}>
-                <span className="truncate">{label}</span>
+                <span className="truncate">{t(key, label)}</span>
               </NavLink>
             ))}
           </div>
@@ -68,7 +70,7 @@ export default function AppShell({ mode = "user" }) {
         </div>
         {open && (
           <div className="mx-4 space-y-2 rounded-2xl border border-white/10 bg-black/50 px-4 py-3 backdrop-blur-xl md:hidden">
-            {links.map(([label, path]) => (
+            {links.map(([key, label, path]) => (
               <NavLink
                 key={path}
                 to={path}
@@ -78,7 +80,7 @@ export default function AppShell({ mode = "user" }) {
                   isActive ? "bg-white/85 text-black shadow-sm" : "text-white/80 hover:bg-white/10"
                 }`}
               >
-                {label}
+                {t(key, label)}
               </NavLink>
             ))}
           </div>

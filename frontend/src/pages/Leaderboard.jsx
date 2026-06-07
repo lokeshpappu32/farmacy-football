@@ -4,6 +4,7 @@ import IdentityHeader from "../components/IdentityHeader";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useAuth } from "../context/AuthContext";
 import { useApi } from "../hooks/useApi";
+import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 
 export default function Leaderboard({
@@ -13,6 +14,7 @@ export default function Leaderboard({
   showIdentity = true,
 }) {
   const { participant } = useAuth();
+  const { t } = useLanguage();
   const [filters, setFilters] = useState({ country: "", medical_rep_mobile_number: "" });
   const [options, setOptions] = useState({ countries: [], medical_reps: [] });
   const { data, loading, error, refresh } = useApi(async () => {
@@ -37,11 +39,11 @@ export default function Leaderboard({
   const medicalReps = uniqueRepOptions([...(options.medical_reps || []), ...(data?.medical_reps || [])]);
   return (
     <div className="space-y-6">
-      {showIdentity && <IdentityHeader nameLabel={identityLabel} rank={ownStanding?.rank} points={ownStanding?.total_points} />}
+      {showIdentity && <IdentityHeader nameLabel={identityLabel === "Name of the Farmacist" ? t("identity.nameFarmacist", identityLabel) : identityLabel} rank={ownStanding?.rank} points={ownStanding?.total_points} />}
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-black">{title}</h1>
-          <p className="text-white/80">{subtitle}</p>
+          <h1 className="text-3xl font-black">{title.includes("Farmacist Standing") ? t("ranking.titleFarmacist", title) : title}</h1>
+          <p className="text-white/80">{subtitle.includes("Global Farmacist") ? t("ranking.farmacistGlobalByCountry", subtitle) : subtitle}</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-[180px_180px_auto]">
           <select
@@ -49,7 +51,7 @@ export default function Leaderboard({
             value={filters.country}
             onChange={(event) => setFilters({ country: event.target.value, medical_rep_mobile_number: "" })}
           >
-            <option className="bg-black" value="">All countries</option>
+            <option className="bg-black" value="">{t("common.allCountries", "All countries")}</option>
             {countries.map((country) => <option className="bg-black" key={country} value={country}>{country}</option>)}
           </select>
           <select
@@ -60,11 +62,11 @@ export default function Leaderboard({
             <option className="bg-black" value="">HETERO Rep</option>
             {medicalReps.map((rep) => (
               <option className="bg-black" key={`${rep.mobile_number}-${rep.country}`} value={rep.mobile_number}>
-                {rep.name} - {rep.country || "Country not set"}
+                {rep.name} - {rep.country || t("ranking.countryNotSet", "Country not set")}
               </option>
             ))}
           </select>
-          <button className="btn-ghost" onClick={refresh}>Refresh</button>
+          <button className="btn-ghost" onClick={refresh}>{t("common.refresh", "Refresh")}</button>
         </div>
       </div>
       <div className="glass scroll-panel max-h-[620px] overflow-y-auto rounded-3xl p-4 md:p-6">

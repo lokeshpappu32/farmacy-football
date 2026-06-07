@@ -40,6 +40,8 @@ EXTRA_FOOTBALL_COUNTRIES = [
     ("Honduras", "HN", "+504"),
     ("Iran", "IR", "+98"),
     ("Ivory Coast", "CI", "+225"),
+    ("Kazakhstan", "KZ", "+7"),
+    ("Kyrgyzstan", "KG", "+996"),
     ("Malawi", "MW", "+265"),
     ("Mauritius", "MU", "+230"),
     ("Namibia", "NA", "+264"),

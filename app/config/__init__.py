@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -27,11 +28,41 @@ def database_uri():
     )
 
 
+def parse_admin_credentials():
+    raw_json = os.getenv("ADMIN_CREDENTIALS_JSON", "").strip()
+    if raw_json:
+        try:
+            data = json.loads(raw_json)
+        except (TypeError, ValueError):
+            return {}
+        return {
+            str(user_id).strip().lower(): {
+                "password": str(account.get("password") or ""),
+                "name": str(account.get("name") or user_id).strip() or str(user_id),
+            }
+            for user_id, account in data.items()
+            if str(user_id).strip() and str(account.get("password") or "")
+        }
+
+    raw_list = os.getenv("ADMIN_CREDENTIALS", "").strip()
+    accounts = {}
+    for entry in raw_list.split(";"):
+        parts = [part.strip() for part in entry.split("|")]
+        if len(parts) < 2 or not parts[0] or not parts[1]:
+            continue
+        accounts[parts[0].lower()] = {
+            "password": parts[1],
+            "name": parts[2] if len(parts) > 2 and parts[2] else parts[0],
+        }
+    return accounts
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-farmacy-football-secret-key-change-in-production")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_DAYS", "90")))
     ADMIN_SECRET_CODE = os.getenv("ADMIN_SECRET_CODE", "ADMIN-FARMACY-CHANGE-ME")
+    ADMIN_CREDENTIALS = parse_admin_credentials()
     SUPER_ADMIN_USER_ID = os.getenv("SUPER_ADMIN_USER_ID", "superadmin")
     SUPER_ADMIN_PASSWORD = os.getenv("SUPER_ADMIN_PASSWORD", "")
 

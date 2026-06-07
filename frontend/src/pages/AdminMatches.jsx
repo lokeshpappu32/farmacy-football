@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import Toast from "../components/Toast";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import { useLanguage } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import api from "../services/api";
 import { formatDateTime } from "../utils/datetime";
+import { localizeMessage } from "../utils/messages";
 
 const empty = { team1_iso: "", team2_iso: "", match_datetime: "" };
 const perPage = 20;
 
 export default function AdminMatches() {
+  const { t } = useLanguage();
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(empty);
   const [actions, setActions] = useState({});
@@ -53,11 +56,11 @@ export default function AdminMatches() {
       await api.post("/admin/matches", { ...form, match_datetime: toUtcIso(form.match_datetime) });
       setForm(empty);
       setToastTone("gold");
-      setToast("Match created.");
+      setToast(t("toast.matchCreated", "Match created."));
       refresh();
     } catch (err) {
       setToastTone("error");
-      setToast(err.message);
+      setToast(localizeMessage(err.message, t));
     }
   };
   const applyAction = async (match) => {
@@ -66,7 +69,7 @@ export default function AdminMatches() {
     if (state.action === "winner") {
       if (!state.winner_team) {
         setToastTone("error");
-        setToast("Select a winning team.");
+        setToast(t("errors.selectWinningTeam", "Select a winning team."));
         return;
       }
       payload.winner_team = state.winner_team;
@@ -74,7 +77,7 @@ export default function AdminMatches() {
     if (state.action === "reschedule") {
       if (!state.match_datetime) {
         setToastTone("error");
-        setToast("Select the new match date and time.");
+        setToast(t("errors.selectMatchDate", "Select the new match date and time."));
         return;
       }
       payload.match_datetime = toUtcIso(state.match_datetime);
@@ -82,12 +85,12 @@ export default function AdminMatches() {
     try {
       const { data } = await api.post(`/admin/matches/${match.id}/action`, payload);
       setToastTone("gold");
-      setToast(data.message || "Match updated.");
+      setToast(localizeMessage(data.message || "Match updated.", t));
       setActions((current) => ({ ...current, [match.id]: { action: "winner", winner_team: "", match_datetime: "" } }));
       refresh();
     } catch (err) {
       setToastTone("error");
-      setToast(err.message);
+      setToast(localizeMessage(err.message, t));
     }
   };
   const allMatches = data?.matches || [];
@@ -105,21 +108,21 @@ export default function AdminMatches() {
   return (
     <div className="space-y-6">
       <Toast message={toast} tone={toastTone} onClose={() => setToast("")} />
-      <h1 className="text-3xl font-black">Match Management</h1>
+      <h1 className="text-3xl font-black">{t("admin.matchManagement", "Match Management")}</h1>
       <form onSubmit={create} className="glass grid gap-3 rounded-3xl p-5 md:grid-cols-[1fr_1fr_1fr_auto]">
-        <CountrySelect label="Team 1" value={form.team1_iso} countries={countries} onChange={(value) => update("team1_iso", value)} />
-        <CountrySelect label="Team 2" value={form.team2_iso} countries={countries} onChange={(value) => update("team2_iso", value)} />
+        <CountrySelect label={t("admin.team1", "Team 1")} value={form.team1_iso} countries={countries} onChange={(value) => update("team1_iso", value)} />
+        <CountrySelect label={t("admin.team2", "Team 2")} value={form.team2_iso} countries={countries} onChange={(value) => update("team2_iso", value)} />
         <label className="text-sm font-bold">
           Match date & time
           <input required className="input mt-2" type="datetime-local" value={form.match_datetime} onChange={(e) => update("match_datetime", e.target.value)} />
         </label>
-        <button className="btn-primary">Create</button>
+        <button className="btn-primary">{t("admin.create", "Create")}</button>
       </form>
       <div className="glass rounded-3xl p-4">
         {loading ? <LoadingSkeleton rows={6} /> : error ? <div>{error}</div> : (
           <>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-black">Matches</h2>
+              <h2 className="text-xl font-black">{t("admin.matches", "Matches")}</h2>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
                   {matchesMeta.total || 0} total
@@ -155,7 +158,7 @@ export default function AdminMatches() {
                         onChange={(event) => changeActionType(match, event.target.value)}
                       >
                         <option className="bg-black" value="winner">Winner</option>
-                        <option className="bg-black" value="draw">Draw</option>
+                        <option className="bg-black" value="draw">{t("common.draw", "Draw")}</option>
                         <option className="bg-black" value="reschedule">Reschedule</option>
                         <option className="bg-black" value="cancel">Cancel</option>
                       </select>
@@ -179,12 +182,12 @@ export default function AdminMatches() {
                         />
                       )}
                       {["draw", "cancel"].includes(actions[match.id]?.action || "") && <div className="hidden sm:block" />}
-                      <button type="button" className="btn-primary whitespace-nowrap" onClick={() => applyAction(match)}>Update Match</button>
+                      <button type="button" className="btn-primary whitespace-nowrap" onClick={() => applyAction(match)}>{t("admin.updateMatch", "Update Match")}</button>
                     </div>
                   )}
                 </div>
               ))}
-              {visibleMatches.length === 0 && <div className="rounded-2xl bg-white/10 p-5 text-white/55">No matches found.</div>}
+              {visibleMatches.length === 0 && <div className="rounded-2xl bg-white/10 p-5 text-white/55">{t("admin.noMatches", "No matches found.")}</div>}
             </div>
           </>
         )}
@@ -194,6 +197,7 @@ export default function AdminMatches() {
 }
 
 function Pagination({ meta, onPage }) {
+  const { t } = useLanguage();
   if (!meta) return null;
   const currentPage = meta.page || 1;
   const totalPages = Math.max(meta.pages || 1, 1);
@@ -204,7 +208,7 @@ function Pagination({ meta, onPage }) {
         disabled={!meta.has_prev}
         onClick={() => onPage(currentPage - 1)}
       >
-        Prev
+        {t("schedule.previous", "Prev")}
       </button>
       <span className="min-w-12 text-center text-xs font-bold text-white/60">{currentPage}/{totalPages}</span>
       <button
@@ -212,7 +216,7 @@ function Pagination({ meta, onPage }) {
         disabled={!meta.has_next}
         onClick={() => onPage(currentPage + 1)}
       >
-        Next
+        {t("schedule.next", "Next")}
       </button>
     </div>
   );
