@@ -8,6 +8,7 @@ import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import { homeForRole } from "../utils/auth";
 import { rememberSelectedCountry } from "../utils/language";
+import { ENGLISH_TERMS } from "../utils/terms";
 import { localizeMessage } from "../utils/messages";
 
 const fallbackCountries = [{ name: "India", iso_code: "IN", country_code: "+91", label: "India (+91)" }];
@@ -40,24 +41,7 @@ const participantAliases = {
 };
 const pharmacyTypes = new Set(["farmacy_owner", "farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"]);
 const heteroTypes = new Set(["hetero_representative_staff", "hetero_staff", "hetero_representative"]);
-const termsText = [
-  "Thank you for participating in the Football with Pharmacists Campaign.",
-  "This Campaign has been designed as a voluntary engagement intended to encourage participation, interaction, communication, and recognition during June & July 2026. Participation is entirely voluntary. No purchase, recommendation, stocking,dispensing, promotion, or use of any product associated with Hetero or its affiliated entities is required for participation. The Campaign is intended to create a positive engagement experience through sports-related participation activities available throughthe platform. Participants are encouraged to review these Terms, Conditions & Disclaimer before registering.",
-  "By registering, enrolling, accessing, or participating in the Campaign or any associated platform, link, communication, or activity, participants acknowledge and agree to the following: Participation is voluntary, Participation must complywith local norms, laws, employer policies, and professional obligations, Information submitted may be used for Campaign administration, communication, analytics, reporting, and operational purposes, Campaign-related information, standings, rankings, and participationmetrics may be displayed within the platform, The Campaign is intended to operate during June and July 2026.",
-  "The Campaign, its structure, operation, participation methodology, registration process, participation activities, standings, rankings, visibility mechanisms, recognition mechanisms, communication materials, timelines, platform functionality,data fields, participation metrics, reporting structures, eligibility criteria, operational procedures, and all related elements may be amended, modified, suspended, restricted, replaced, postponed, discontinued, withdrawn, terminated, or otherwise alteredby the Organizer at any time, in whole or in part, with or without notice, explanation, justification, consent, liability, obligation, compensation, or correspondence.",
-  "The Organizer shall have sole and absolute authority to determine eligibility, participation status, registration validity, participation metrics, standings, rankings, visibility measures, recognition eligibility, platform access, interpretationof Campaign rules, interpretation of these Terms, Conditions & Disclaimer, and all matters relating to Campaign administration. All decisions of the Organizer shall be final, binding, conclusive, and not subject to challenge, appeal, objection, arbitration,review, reconsideration, dispute, or further correspondence. The Organizer shall not be obligated to provide reasons, supporting information, evidence, documentation, clarification, or justification for any decision made in connection with the Campaign.",
-  "Participation, standings, rankings, visibility, acknowledgements, participation benefits, recognition activities, engagement activities, communications, and all Campaign-related elements are discretionary in nature and create no vestedright, entitlement, ownership interest, expectation, contractual right, commercial right, employment right, financial right, or enforceable claim against the Organizer. No standing, ranking, visibility measure, participation metric, acknowledgment, or recognitionstatus shall create any entitlement, expectation, claim, preference, benefit, or right of any kind.",
-  "This Campaign is an independent participant engagement initiative developed solely by the Organizer and has no sponsorship, endorsement, approval, authorization, affiliation, partnership, association, relationship, or official connectionwhatsoever with any local, national, regional, continental, or international sporting event, sports competition, federation, league, club, association, governing body, authority, rights holder, tournament organizer, or related entity.",
-  "All registration links, platform content, communications, dashboards, standings, rankings, screenshots, screen recordings, reports, participant information, campaign materials, training materials, analytics, outputs, participation metrics,and related information shall be treated as confidential. Participants shall not copy, reproduce, record, publish, distribute, transmit, circulate, upload, post, display, disclose, share, forward, broadcast, store, or otherwise make available any such informationto any third party, social media platform, media outlet, governmental authority, industry body, competitor, external organization, or unrelated individual without prior written authorization from the Organizer.",
-  "Participants expressly consent to the collection, receipt, storage, processing, transfer, analysis, review, retention, administration, and use of information submitted in connection with the Campaign. Such processing may occur across jurisdictionsand through third-party service providers engaged by the Organizer. Individuals who do not agree to such collection, storage, transfer, processing, review, analysis, retention, or use of information should not register, enroll, access, or participate in theCampaign.",
-  "Participants are solely responsible for the accuracy, completeness, legality, validity, and appropriateness of any information, data, declarations, registrations, submissions, or other content provided in connection with the Campaign.",
-  "Participants acknowledge and agree that they have not relied upon, and shall not rely upon, any representation, statement, assurance, promise, commitment, expectation, communication, interpretation, understanding, or indication made byany employee, medical representative, distributor, contractor, supervisor, country team member, third party, or any person whatsoever other than the provisions expressly contained within these Terms, Conditions & Disclaimer.",
-  "The Organizer shall have no obligation to provide alternative participation mechanisms, individualized privacy accommodations, explanations, review procedures, appeal mechanisms, correction opportunities, dispute resolution processes, platformavailability guarantees, continued access rights, or ongoing participation rights.",
-  "The Organizer reserves the right to suspend, remove, restrict, invalidate, disregard, terminate, or disqualify any participant, registration, participation record, participation metric, standing, ranking, visibility measure, communication,or platform access at its sole discretion and without obligation to provide explanation or justification.",
-  "The Organizer shall not be responsible or liable for the conduct, actions, communications, representations, omissions, statements, commitments, interpretations, or activities of any participant, employee, contractor, distributor, representative,technology provider, service provider, or third party participating in, supporting, facilitating, administering, or otherwise associated with the Campaign.",
-  "To the fullest extent permitted under applicable law, the Organizer, its affiliates, officers, directors, employees, representatives, contractors, distributors, service providers, technology partners, and associated entities shall not beliable for any direct, indirect, incidental, consequential, regulatory, reputational, professional, commercial, operational, technical, financial, or other loss, damage, claim, cost, expense, proceeding, investigation, action, or liability arising from orrelating to participation in the Campaign.",
-  "By proceeding with registration or participation, each participant confirms that they have read, understood, accepted, and agreed to these Terms, Conditions & Disclaimer in their entirety.",
-];
+const termsText = ENGLISH_TERMS;
 export default function Enroll() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
@@ -334,15 +318,17 @@ function Field({ label, children }) {
 function TermsModal({ onClose }) {
   const { t, tList } = useLanguage();
   const translatedTerms = tList("terms.paragraphs", termsText);
+  const termsTitle = translatedTerms[0] || t("enroll.termsTitle", "TERMS, CONDITIONS & DISCLAIMER");
+  const termsBody = translatedTerms.slice(1);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
       <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/15 bg-[#07120d] text-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h2 className="text-xl font-black">{t("enroll.termsTitle", "TERMS, CONDITIONS & DISCLAIMER")}</h2>
+          <h2 className="text-xl font-black">{termsTitle}</h2>
           <button type="button" className="rounded-full bg-white/10 px-3 py-1 text-xl" onClick={onClose} aria-label="Close terms">x</button>
         </div>
         <div className="scroll-panel max-h-[68vh] space-y-4 overflow-y-auto px-5 py-4">
-          {translatedTerms.map((copy, index) => (
+          {termsBody.map((copy, index) => (
             <p key={index} className="text-sm leading-6 text-white/75">{copy}</p>
           ))}
         </div>

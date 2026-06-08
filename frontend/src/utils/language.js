@@ -13,26 +13,34 @@ const SPANISH_COUNTRY_NAMES = new Set([
 ]);
 
 const FRENCH_COUNTRY_NAMES = new Set([
+  "benin",
   "cameroon",
   "cote d'ivoire",
-  "côte d'ivoire",
   "ivory coast",
+  "mali",
   "senegal",
+  "togo",
 ]);
 
 const RUSSIAN_COUNTRY_NAMES = new Set([
-  "ukraine",
-  "kazakhstan",
-  "uzbekistan",
+  "azerbaijan",
+  "belarus",
+  "kirghizstan",
   "kyrgyzstan",
+  "kazakhstan",
+  "russia",
+  "ukraine",
+  "uzbekistan",
 ]);
 
 const SPANISH_COUNTRY_CODES = new Set(["CL", "CO", "CR", "DO", "SV", "GT", "HN", "MX", "NI", "PA", "PE"]);
-const FRENCH_COUNTRY_CODES = new Set(["CM", "CI", "SN"]);
-const RUSSIAN_COUNTRY_CODES = new Set(["UA", "KZ", "UZ", "KG"]);
+const FRENCH_COUNTRY_CODES = new Set(["BJ", "CM", "CI", "ML", "SN", "TG"]);
+const RUSSIAN_COUNTRY_CODES = new Set(["AZ", "BY", "KG", "KZ", "RU", "UA", "UZ"]);
 
 export function normalizeCountryName(country) {
   return String(country || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
