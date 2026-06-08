@@ -218,7 +218,7 @@ def users():
             .all()
         ],
         "participant_types": participant_type_options(),
-        "users": [user.to_dict(include_private=True) for user in query.order_by(Participant.created_at.desc()).limit(500).all()],
+        "users": [user.to_dict(include_private=True) for user in query.order_by(Participant.created_at.desc()).all()],
     }
 
 
