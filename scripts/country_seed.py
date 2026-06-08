@@ -25,6 +25,7 @@ COUNTRIES = [
 ]
 
 EXTRA_FOOTBALL_COUNTRIES = [
+    ("Barbados", "BB", "+1"),
     ("Bosnia and Herzegovina", "BA", "+387"),
     ("Botswana", "BW", "+267"),
     ("Cape Verde", "CV", "+238"),
@@ -43,6 +44,7 @@ EXTRA_FOOTBALL_COUNTRIES = [
     ("Honduras", "HN", "+504"),
     ("Iran", "IR", "+98"),
     ("Ivory Coast", "CI", "+225"),
+    ("Jamaica", "JM", "+1"),
     ("Kazakhstan", "KZ", "+7"),
     ("Kyrgyzstan", "KG", "+996"),
     ("Malawi", "MW", "+265"),
