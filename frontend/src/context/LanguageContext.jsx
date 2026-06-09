@@ -10,6 +10,7 @@ import { LANGUAGE_OVERRIDE_KEY, TARGET_LANGUAGE_KEY } from "../utils/translation
 const LanguageContext = createContext({
   language: "en",
   targetLanguage: "",
+  currentCountry: "",
   translationEligible: false,
   switchLanguage: () => {},
   t: (_key, fallback) => fallback,
@@ -37,6 +38,7 @@ function rememberTargetLanguage(language) {
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_OVERRIDE_KEY) || "en");
   const [targetLanguage, setTargetLanguage] = useState(() => storedTargetLanguage() || browserPreferredCampaignLanguage());
+  const [currentCountry, setCurrentCountry] = useState(() => localStorage.getItem("ff_selected_country") || readParticipantCountry() || "");
 
   useEffect(() => {
     const storedTarget = storedTargetLanguage();
@@ -60,6 +62,7 @@ export function LanguageProvider({ children }) {
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
+        if (data.country_name) setCurrentCountry(data.country_name);
         const detectedLanguage = languageForCountry(data.country_name) || languageForCountryCode(data.country);
         if (!detectedLanguage) return;
         setTargetLanguage(detectedLanguage);
@@ -75,7 +78,9 @@ export function LanguageProvider({ children }) {
 
   useEffect(() => {
     const onCountrySelected = (event) => {
-      const selectedLanguage = languageForCountry(event.detail?.country);
+      const selectedCountry = event.detail?.country || "";
+      if (selectedCountry) setCurrentCountry(selectedCountry);
+      const selectedLanguage = languageForCountry(selectedCountry);
       if (!selectedLanguage) return;
       setTargetLanguage(selectedLanguage);
       rememberTargetLanguage(selectedLanguage);
@@ -100,6 +105,7 @@ export function LanguageProvider({ children }) {
     () => ({
       language,
       targetLanguage,
+      currentCountry,
       translationEligible: Boolean(targetLanguage) || language !== "en",
       switchLanguage,
       t: (key, fallback, values = {}) => i18n.t(key, { lng: language, defaultValue: fallback, ...values }),
@@ -108,7 +114,7 @@ export function LanguageProvider({ children }) {
         return Array.isArray(value) ? value : fallback;
       },
     }),
-    [language, switchLanguage, targetLanguage],
+    [currentCountry, language, switchLanguage, targetLanguage],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

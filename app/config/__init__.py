@@ -16,16 +16,7 @@ def database_uri():
         return raw_uri
     if azure_sql:
         return f"mssql+pyodbc:///?odbc_connect={quote_plus(azure_sql)}"
-    return "mssql+pyodbc:///?odbc_connect=" + quote_plus(
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=tcp:your-server.database.windows.net,1433;"
-        "Database=your-database;"
-        "Uid=your-user;"
-        "Pwd=your-password;"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
-    )
+    raise RuntimeError("Set AZURE_SQL_CONNECTION_STRING or DATABASE_URL before starting the application.")
 
 
 def parse_admin_credentials():

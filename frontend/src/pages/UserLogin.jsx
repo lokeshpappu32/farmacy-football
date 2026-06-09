@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppFooter from "../components/AppFooter";
+import BrandHeaderLogos from "../components/BrandHeaderLogos";
 import FootballLogo from "../components/FootballLogo";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
@@ -83,7 +84,8 @@ export default function UserLogin() {
     >
       <div className="absolute inset-0 bg-black/10" />
       <Toast message={error} tone="error" onClose={() => setError("")} />
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-8">
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-8">
+        <BrandHeaderLogos className="mb-5" logoClassName="h-16 w-28 sm:h-20 sm:w-36" />
         <form onSubmit={submit} noValidate className="glass w-full max-w-md rounded-[28px] p-5 text-center sm:rounded-[32px] sm:p-8">
           <FootballLogo compact className="mx-auto mb-8" />
           <h1 className="text-3xl font-black">{t("login.participantTitle", "Participant Login")}</h1>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AppFooter from "../components/AppFooter";
+import { SplitBrandHeaderLogos } from "../components/BrandHeaderLogos";
 import FootballLogo from "../components/FootballLogo";
 import Toast from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
@@ -179,7 +180,10 @@ export default function Enroll() {
       <Toast message={error} tone="error" onClose={() => setError("")} />
       <Toast message={repEnrollmentPopup} tone="error" onClose={() => setRepEnrollmentPopup("")} />
 
-      <img src="/hetero-logo.png" alt="Hetero" className="absolute right-3 top-4 z-10 h-16 w-24 object-contain mix-blend-screen sm:right-[7%] sm:top-8 sm:h-24 sm:w-32" />
+      <SplitBrandHeaderLogos
+        className="absolute left-3 right-3 top-4 z-10 sm:left-[7%] sm:right-[7%] sm:top-8"
+        logoClassName="h-16 w-24 sm:h-24 sm:w-32"
+      />
 
       <form onSubmit={submit} className="enroll-card relative z-10 mx-auto mt-24 min-w-0 rounded-[30px] border border-white/12 bg-green-950/42 px-3 pb-8 pt-7 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-[1px] sm:mt-16 sm:px-7 md:px-12">
         <FootballLogo compact={false} className="mx-auto mb-10 max-w-[260px] sm:mb-16 sm:max-w-[420px]" />
