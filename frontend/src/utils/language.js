@@ -9,6 +9,7 @@ const SPANISH_COUNTRY_NAMES = new Set([
   "mexico",
   "nicaragua",
   "panama",
+  "paraguay",
   "peru",
 ]);
 
@@ -33,7 +34,7 @@ const RUSSIAN_COUNTRY_NAMES = new Set([
   "uzbekistan",
 ]);
 
-const SPANISH_COUNTRY_CODES = new Set(["CL", "CO", "CR", "DO", "SV", "GT", "HN", "MX", "NI", "PA", "PE"]);
+const SPANISH_COUNTRY_CODES = new Set(["CL", "CO", "CR", "DO", "SV", "GT", "HN", "MX", "NI", "PA", "PE", "PY"]);
 const FRENCH_COUNTRY_CODES = new Set(["BJ", "CM", "CI", "ML", "SN", "TG"]);
 const RUSSIAN_COUNTRY_CODES = new Set(["AZ", "BY", "KG", "KZ", "RU", "UA", "UZ"]);
 
