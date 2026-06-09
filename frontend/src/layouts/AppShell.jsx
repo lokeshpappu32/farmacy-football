@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import AppFooter from "../components/AppFooter";
+import BrandHeaderLogos from "../components/BrandHeaderLogos";
 import FootballLogo from "../components/FootballLogo";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -66,7 +67,7 @@ export default function AppShell({ mode = "user" }) {
               </NavLink>
             ))}
           </div>
-          <img src="/hetero-logo.png" alt="Hetero" className="hidden h-16 w-24 shrink-0 object-contain mix-blend-screen lg:h-20 lg:w-28 md:block" />
+          <BrandHeaderLogos className="hidden shrink-0 md:flex" logoClassName="h-14 w-20 lg:h-16 lg:w-24" />
         </div>
         {open && (
           <div className="mx-4 space-y-2 rounded-2xl border border-white/10 bg-black/50 px-4 py-3 backdrop-blur-xl md:hidden">

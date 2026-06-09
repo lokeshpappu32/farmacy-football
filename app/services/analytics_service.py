@@ -100,6 +100,7 @@ def mr_country_rankings():
         total_enrollments = len(pharmacist_ids)
         total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
         avg_participations = round(total_participations / max(total_enrollments, 1), 1)
+        rank_score = (1, avg_participations) if avg_participations > 0 else (0, total_enrollments)
         rows.append(
             {
                 "country": country,
@@ -108,10 +109,20 @@ def mr_country_rankings():
                 "participations": total_participations,
                 "score": avg_participations,
                 "avg_participations": avg_participations,
+                "_rank_score": rank_score,
             }
         )
-    ranked = sorted(rows, key=lambda row: (row["score"], row["participations"], row["country"]), reverse=True)
-    return apply_dense_ranks(ranked, "score")
+    ranked = sorted(
+        rows,
+        key=lambda row: (
+            row["_rank_score"],
+            row["participations"],
+            row["country"],
+        ),
+        reverse=True,
+    )
+    ranked_rows = apply_dense_ranks(ranked, "_rank_score")
+    return [{key: value for key, value in row.items() if key != "_rank_score"} for row in ranked_rows]
 
 
 def hetero_rep_participation_performance(rep_id, country=None):

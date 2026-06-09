@@ -1,5 +1,6 @@
 import LanguageTranslator from "./LanguageTranslator";
 import { useLanguage } from "../context/LanguageContext";
+import { isEgyptCountry } from "../utils/branding";
 
 const clientLogos = [
   { src: "/images/client-logos/amarox.png", alt: "Amarox" },
@@ -10,11 +11,12 @@ const clientLogos = [
 ];
 
 export default function AppFooter({ compact = false, showClientLogos = false }) {
-  const { t } = useLanguage();
+  const { currentCountry, t } = useLanguage();
+  const showLogoStrip = showClientLogos && !isEgyptCountry(currentCountry);
   return (
     <div className={`relative z-10 mt-auto ${compact ? "pt-2" : "pt-8"}`}>
       <LanguageTranslator />
-      {showClientLogos && (
+      {showLogoStrip && (
         <div className="mx-auto mb-2 w-[calc(100%-1rem)] max-w-4xl rounded-lg border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-sm sm:w-[calc(100%-2rem)] sm:px-6">
           <div className="grid grid-cols-5 items-center justify-items-center gap-3 sm:gap-6">
             {clientLogos.map((logo) => (

@@ -11,6 +11,7 @@ import IdentityHeader from "../components/IdentityHeader";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { addHours, formatDate, formatDateTime } from "../utils/datetime";
+import { isEgyptCountry } from "../utils/branding";
 import { localizeMessage } from "../utils/messages";
 
 export default function Dashboard() {
@@ -164,7 +165,10 @@ function AwaitingResults({ matches, predictions, drafts, onDraft, onSubmit }) {
 }
 
 function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, index }) {
-  const { t } = useLanguage();
+  const { currentCountry, t } = useLanguage();
+  const brandLabel = isEgyptCountry(currentCountry)
+    ? t("dashboard.favoriteElixirBrandToday", "My Favorite ELIXIR Brand Today")
+    : t("dashboard.favoriteHeteroBrandToday", "My Favorite HETERO Brand Today");
   const selectedTeam = draft.predicted_team || prediction?.predicted_team || "";
   const selectedDrug = draft.favorite_drug ?? prediction?.favorite_drug ?? "";
   const isLocked = new Date(match.match_datetime).getTime() <= Date.now();
@@ -243,7 +247,7 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
                 </button>
               ))}
             </div>
-            <label className="block text-lg font-black">{t("dashboard.favoriteHeteroBrandToday", "My favourite HETERO Brand Today")}</label>
+            <label className="block text-lg font-black">{brandLabel}</label>
             <input
               className="enroll-input rounded-full"
               value={selectedDrug}

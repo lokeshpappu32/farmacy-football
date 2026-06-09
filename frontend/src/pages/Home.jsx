@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppFooter from "../components/AppFooter";
+import BrandHeaderLogos from "../components/BrandHeaderLogos";
 import FootballLogo from "../components/FootballLogo";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -55,11 +56,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-emerald-950/12" />
 
       <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-4 text-center sm:py-5">
-        <img
-          src="/hetero-logo.png"
-          alt="Hetero"
-          className="mt-1 h-16 w-32 object-contain mix-blend-screen sm:h-20 sm:w-40 lg:h-24 lg:w-48"
-        />
+        <BrandHeaderLogos className="mt-1" logoClassName="h-16 w-32 sm:h-20 sm:w-40 lg:h-24 lg:w-48" />
 
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-10 pt-4 sm:pb-12 sm:pt-5">
           <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-100" />
