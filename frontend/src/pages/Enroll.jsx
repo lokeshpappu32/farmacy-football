@@ -8,11 +8,11 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import { homeForRole } from "../utils/auth";
+import { fallbackCountries } from "../utils/countries";
 import { rememberSelectedCountry } from "../utils/language";
 import { ENGLISH_TERMS } from "../utils/terms";
 import { localizeMessage } from "../utils/messages";
 
-const fallbackCountries = [{ name: "India", iso_code: "IN", country_code: "+91", label: "India (+91)" }];
 const mrEnrollmentMessage = "Kindly ask your Hetero Representative to enroll first using his/her mobile number.";
 const participantLabels = {
   farmacy_owner: ["participant.farmacyOwner", "Farmacy Owner"],
