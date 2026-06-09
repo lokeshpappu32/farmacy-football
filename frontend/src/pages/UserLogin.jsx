@@ -8,10 +8,9 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import { homeForRole } from "../utils/auth";
+import { fallbackCountries } from "../utils/countries";
 import { rememberSelectedCountry } from "../utils/language";
 import { localizeMessage } from "../utils/messages";
-
-const fallbackCountries = [{ name: "India", iso_code: "IN", country_code: "+91", label: "India (+91)" }];
 
 export default function UserLogin() {
   const { t } = useLanguage();
