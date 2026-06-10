@@ -56,10 +56,9 @@ export default function Home() {
       <div className="absolute inset-0 bg-emerald-950/12" />
 
       <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-4 text-center sm:py-5">
-        <HomeLanguageSelector language={language} onChange={setManualLanguage} />
         <BrandHeaderLogos className="mt-1" logoClassName="h-16 w-32 sm:h-20 sm:w-40 lg:h-24 lg:w-48" />
 
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-10 pt-4 sm:pb-12 sm:pt-5">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-16 pt-4 sm:pb-20 sm:pt-5">
           <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-100" />
 
           <div className="mt-6 grid w-full max-w-4xl gap-5 text-left text-xs font-semibold uppercase tracking-wide sm:mt-8 sm:text-sm lg:grid-cols-[1fr_auto_1fr] lg:text-base">
@@ -74,14 +73,15 @@ export default function Home() {
           >
             {t("home.enroll", "Enroll")}
           </Link>
+          <Link
+            to="/login"
+            className="mt-5 text-sm font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:text-base"
+          >
+            {t("enroll.adminLogin", "Login - if you are Admin")}
+          </Link>
         </div>
 
-        <Link
-          to="/login"
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:bottom-4 sm:text-base"
-        >
-          {t("enroll.adminLogin", "Login - if you are Admin")}
-        </Link>
+        <HomeLanguageSelector language={language} onChange={setManualLanguage} />
       </section>
       <AppFooter compact showClientLogos />
     </main>
@@ -96,7 +96,7 @@ function HomeLanguageSelector({ language, onChange }) {
     ["ru", "Русский"],
   ];
   return (
-    <div className="mb-2 flex flex-wrap items-center justify-center gap-1 rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[11px] font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm sm:absolute sm:right-5 sm:top-5 sm:mb-0 sm:text-xs">
+    <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[11px] font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm sm:bottom-4 sm:text-xs">
       {options.map(([value, label]) => (
         <button
           key={value}
