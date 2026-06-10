@@ -145,7 +145,7 @@ export default function UserLogin() {
           <button className="btn-primary mt-6 w-full" disabled={loading}>{loading ? t("login.checking", "Checking...") : t("common.login", "Login")}</button>
         </form>
       </div>
-      <AppFooter />
+      <AppFooter showClientLogos />
     </div>
   );
 }

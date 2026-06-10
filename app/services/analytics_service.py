@@ -85,7 +85,7 @@ def mr_country_rankings():
     countries = [
         row[0]
         for row in db.session.query(Participant.country)
-        .filter(Participant.participant_type.in_(PHARMACY_TYPES), Participant.country.isnot(None), Participant.country != "")
+        .filter(Participant.participant_type.in_(PHARMACY_TYPES | HETERO_TYPES), Participant.country.isnot(None), Participant.country != "")
         .distinct()
         .all()
     ]
@@ -97,15 +97,27 @@ def mr_country_rankings():
             .filter(Participant.participant_type.in_(PHARMACY_TYPES), Participant.country == country)
             .all()
         ]
-        total_enrollments = len(pharmacist_ids)
+        total_farmacy_enrollments = len(pharmacist_ids)
+        total_hetero_enrollments = (
+            Participant.query.filter(
+                Participant.participant_type.in_(HETERO_TYPES),
+                Participant.country == country,
+            ).count()
+        )
         total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
-        avg_participations = round(total_participations / max(total_enrollments, 1), 1)
-        rank_score = (1, avg_participations) if avg_participations > 0 else (0, total_enrollments)
+        avg_participations = round(total_participations / max(total_hetero_enrollments, 1), 1)
+        rank_score = (
+            (1, avg_participations)
+            if avg_participations > 0
+            else (0, total_hetero_enrollments, total_farmacy_enrollments)
+        )
         rows.append(
             {
                 "country": country,
                 "country_flag_url": flags.get(country),
-                "enrollments": total_enrollments,
+                "enrollments": total_farmacy_enrollments,
+                "farmacy_enrollments": total_farmacy_enrollments,
+                "hetero_enrollments": total_hetero_enrollments,
                 "participations": total_participations,
                 "score": avg_participations,
                 "avg_participations": avg_participations,
