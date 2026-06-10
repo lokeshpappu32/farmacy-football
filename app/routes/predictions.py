@@ -2,7 +2,12 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 
 from app.auth.guards import participant_required
-from app.services.prediction_service import submit_or_update_prediction, update_prediction_by_id
+from app.services.prediction_service import (
+    MatchUnavailableError,
+    StaleParticipantSessionError,
+    submit_or_update_prediction,
+    update_prediction_by_id,
+)
 from app.utils.validators import ValidationError, require_fields
 
 predictions_bp = Blueprint("predictions", __name__)
@@ -21,6 +26,10 @@ def submit_prediction():
             str(payload["favorite_drug"]).strip(),
         )
         return {"prediction": prediction.to_dict(), "message": "Prediction saved."}, 201 if created else 200
+    except StaleParticipantSessionError as exc:
+        return {"message": str(exc), "code": "SESSION_EXPIRED"}, 401
+    except MatchUnavailableError as exc:
+        return {"message": str(exc), "code": "MATCH_UNAVAILABLE"}, 409
     except ValidationError as exc:
         return {"message": str(exc)}, 400
 
@@ -38,5 +47,9 @@ def update_prediction(prediction_id):
             str(payload["favorite_drug"]).strip(),
         )
         return {"prediction": prediction.to_dict(), "message": "Prediction updated."}
+    except StaleParticipantSessionError as exc:
+        return {"message": str(exc), "code": "SESSION_EXPIRED"}, 401
+    except MatchUnavailableError as exc:
+        return {"message": str(exc), "code": "MATCH_UNAVAILABLE"}, 409
     except ValidationError as exc:
         return {"message": str(exc)}, 400

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiX } from "react-icons/fi";
 import { useLanguage } from "../context/LanguageContext";
 
-export default function Toast({ message, tone = "gold", onClose }) {
+export default function Toast({ message, tone = "gold", onClose, actionLabel, onAction }) {
   const { t } = useLanguage();
   return (
     <AnimatePresence>
@@ -34,9 +34,9 @@ export default function Toast({ message, tone = "gold", onClose }) {
             <button
               type="button"
               className="rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-8 py-3 font-black uppercase text-white"
-              onClick={onClose}
+              onClick={onAction || onClose}
             >
-              {t("common.close", "Close")}
+              {actionLabel || t("common.close", "Close")}
             </button>
           </motion.div>
         </div>

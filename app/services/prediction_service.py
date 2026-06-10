@@ -9,11 +9,21 @@ from app.utils.time import as_utc
 from app.utils.validators import ValidationError
 
 
+class StaleParticipantSessionError(ValidationError):
+    pass
+
+
+class MatchUnavailableError(ValidationError):
+    pass
+
+
 def submit_or_update_prediction(participant_id, match_id, predicted_team, favorite_drug):
     match = db.session.get(Match, match_id)
     participant = db.session.get(Participant, participant_id)
-    if not match or not participant:
-        raise ValidationError("Participant or match was not found.")
+    if not participant:
+        raise StaleParticipantSessionError("Your login session is no longer valid. Please login again.")
+    if not match:
+        raise MatchUnavailableError("This match is no longer available. Please refresh the dashboard.")
     if as_utc(match.match_datetime) <= datetime.now(timezone.utc):
         raise ValidationError("Predictions are closed for this match.")
     if predicted_team not in {match.team1, match.team2, "Draw"}:
@@ -40,6 +50,9 @@ def submit_or_update_prediction(participant_id, match_id, predicted_team, favori
 
 
 def update_prediction_by_id(participant_id, prediction_id, predicted_team, favorite_drug):
+    participant = db.session.get(Participant, participant_id)
+    if not participant:
+        raise StaleParticipantSessionError("Your login session is no longer valid. Please login again.")
     prediction = Prediction.query.filter_by(id=prediction_id, participant_id=participant_id).first()
     if not prediction:
         raise ValidationError("Prediction was not found.")
