@@ -17,10 +17,10 @@ export default function AppFooter({ compact = false, showClientLogos = false }) 
     <div className={`relative z-10 mt-auto ${compact ? "pt-2" : "pt-8"}`}>
       <LanguageTranslator />
       {showLogoStrip && (
-        <div className="mx-auto mb-2 w-[calc(100%-1rem)] max-w-4xl rounded-lg border border-white/10 bg-black/35 px-4 py-2 backdrop-blur-sm sm:w-[calc(100%-2rem)] sm:px-6">
-          <div className="grid grid-cols-5 items-center justify-items-center gap-3 sm:gap-6">
+        <div className="mx-auto mb-2 w-[calc(100%-1rem)] max-w-4xl rounded-lg border border-white/20 bg-white px-4 py-2 shadow-[0_10px_30px_rgba(0,0,0,.22)] sm:w-[calc(100%-2rem)] sm:px-6">
+          <div className="grid grid-cols-5 items-center justify-items-center gap-5 sm:gap-8">
             {clientLogos.map((logo) => (
-              <div key={logo.src} className="flex h-8 min-w-0 items-center justify-center sm:h-10">
+              <div key={logo.src} className="flex h-8 min-w-0 items-center justify-center px-1 sm:h-10 sm:px-2">
                 <img src={logo.src} alt={logo.alt} className="max-h-full max-w-[72px] object-contain sm:max-w-[96px]" />
               </div>
             ))}
