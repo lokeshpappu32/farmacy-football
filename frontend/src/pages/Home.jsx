@@ -32,7 +32,7 @@ const visitorAliases = {
 };
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { language, setManualLanguage, t } = useLanguage();
   const [params] = useSearchParams();
   const [visitorType, setVisitorType] = useState("farmacy_owner");
   const navigate = useNavigate();
@@ -56,6 +56,7 @@ export default function Home() {
       <div className="absolute inset-0 bg-emerald-950/12" />
 
       <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-4 text-center sm:py-5">
+        <HomeLanguageSelector language={language} onChange={setManualLanguage} />
         <BrandHeaderLogos className="mt-1" logoClassName="h-16 w-32 sm:h-20 sm:w-40 lg:h-24 lg:w-48" />
 
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-10 pt-4 sm:pb-12 sm:pt-5">
@@ -84,6 +85,31 @@ export default function Home() {
       </section>
       <AppFooter compact showClientLogos />
     </main>
+  );
+}
+
+function HomeLanguageSelector({ language, onChange }) {
+  const options = [
+    ["en", "English"],
+    ["es", "Español"],
+    ["fr", "Français"],
+    ["ru", "Русский"],
+  ];
+  return (
+    <div className="mb-2 flex flex-wrap items-center justify-center gap-1 rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[11px] font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm sm:absolute sm:right-5 sm:top-5 sm:mb-0 sm:text-xs">
+      {options.map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          className={`rounded-full px-2.5 py-1 transition ${
+            language === value ? "bg-gold text-black" : "text-white/75 hover:bg-white/10 hover:text-white"
+          }`}
+          onClick={() => onChange(value)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }
 

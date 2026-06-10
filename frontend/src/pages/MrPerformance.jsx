@@ -72,14 +72,16 @@ export default function MrPerformance({ mode = "admin" }) {
                   {row.country_flag_url && <img src={row.country_flag_url} alt={row.country} className="h-8 w-8 rounded-full object-cover" />}
                   <div className="min-w-0">
                     <div className="truncate text-lg font-black">{row.country}</div>
-                  <div className="truncate text-xs text-white/50">
-                    {t("ranking.enrolledFarmacists", `${row.enrollments || 0} enrolled farmacists`, { count: row.enrollments || 0 })}, {row.participations || 0} {t("ranking.participations", "participations")}
-                  </div>
+                    <div className="text-xs leading-5 text-white/50">
+                      {t("ranking.enrolledFarmacists", `${row.farmacy_enrollments ?? row.enrollments ?? 0} enrolled farmacists`, { count: row.farmacy_enrollments ?? row.enrollments ?? 0 })},{" "}
+                      {t("ranking.enrolledHeteroStaff", `${row.hetero_enrollments || 0} enrolled HETERO reps/staff`, { count: row.hetero_enrollments || 0 })},{" "}
+                      {row.participations || 0} {t("ranking.participations", "participations")}
+                    </div>
                   </div>
                 </div>
                 <div className="min-w-0 pl-[52px] text-left sm:pl-0 sm:text-right">
                   <div className="text-xl font-black text-gold">{row.avg_participations ?? row.score}</div>
-                  <div className="truncate text-[10px] uppercase tracking-widest text-white/50">{t("ranking.avgParticipations", "avg participations")}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-white/50">{t("ranking.avgParticipationsPerHeteroStaff", "avg participations / HETERO rep")}</div>
                 </div>
               </div>
             ))}

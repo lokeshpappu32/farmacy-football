@@ -12,6 +12,7 @@ const LanguageContext = createContext({
   targetLanguage: "",
   currentCountry: "",
   translationEligible: false,
+  setManualLanguage: () => {},
   switchLanguage: () => {},
   t: (_key, fallback) => fallback,
   tList: (_key, fallback) => fallback,
@@ -101,12 +102,22 @@ export function LanguageProvider({ children }) {
     setLanguage(nextLanguage);
   }, [language, targetLanguage]);
 
+  const setManualLanguage = useCallback((nextLanguage) => {
+    localStorage.setItem(LANGUAGE_OVERRIDE_KEY, nextLanguage);
+    if (nextLanguage && nextLanguage !== "en") {
+      setTargetLanguage(nextLanguage);
+      rememberTargetLanguage(nextLanguage);
+    }
+    setLanguage(nextLanguage || "en");
+  }, []);
+
   const value = useMemo(
     () => ({
       language,
       targetLanguage,
       currentCountry,
       translationEligible: Boolean(targetLanguage) || language !== "en",
+      setManualLanguage,
       switchLanguage,
       t: (key, fallback, values = {}) => i18n.t(key, { lng: language, defaultValue: fallback, ...values }),
       tList: (key, fallback) => {
@@ -114,7 +125,7 @@ export function LanguageProvider({ children }) {
         return Array.isArray(value) ? value : fallback;
       },
     }),
-    [currentCountry, language, switchLanguage, targetLanguage],
+    [currentCountry, language, setManualLanguage, switchLanguage, targetLanguage],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

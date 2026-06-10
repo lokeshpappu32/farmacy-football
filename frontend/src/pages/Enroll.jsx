@@ -305,7 +305,7 @@ export default function Enroll() {
           onEdit={editMobileConfirm}
         />
       )}
-      <AppFooter />
+      <AppFooter showClientLogos />
     </div>
   );
 }
