@@ -96,12 +96,12 @@ function HomeLanguageSelector({ language, onChange }) {
     ["ru", "Русский"],
   ];
   return (
-    <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[11px] font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm sm:bottom-4 sm:text-xs">
+    <div className="absolute bottom-2 left-1/2 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-nowrap items-center justify-center gap-0.5 overflow-hidden rounded-full border border-white/15 bg-black/35 px-1.5 py-1 text-[9px] font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm min-[380px]:gap-1 min-[380px]:px-2 min-[380px]:text-[10px] sm:bottom-4 sm:text-xs">
       {options.map(([value, label]) => (
         <button
           key={value}
           type="button"
-          className={`rounded-full px-2.5 py-1 transition ${
+          className={`shrink-0 rounded-full px-1.5 py-1 transition min-[380px]:px-2 sm:px-2.5 ${
             language === value ? "bg-gold text-black" : "text-white/75 hover:bg-white/10 hover:text-white"
           }`}
           onClick={() => onChange(value)}
