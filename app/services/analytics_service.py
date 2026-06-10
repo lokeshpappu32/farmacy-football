@@ -98,11 +98,26 @@ def mr_country_rankings():
             .all()
         ]
         total_farmacy_enrollments = len(pharmacist_ids)
+        enrolling_rep_mobiles = [
+            row[0]
+            for row in db.session.query(Participant.medical_rep_mobile_number)
+            .filter(
+                Participant.participant_type.in_(PHARMACY_TYPES),
+                Participant.country == country,
+                Participant.medical_rep_mobile_number.isnot(None),
+                Participant.medical_rep_mobile_number != "",
+            )
+            .distinct()
+            .all()
+        ]
         total_hetero_enrollments = (
             Participant.query.filter(
                 Participant.participant_type.in_(HETERO_TYPES),
                 Participant.country == country,
+                Participant.mobile_number.in_(enrolling_rep_mobiles),
             ).count()
+            if enrolling_rep_mobiles
+            else 0
         )
         total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
         avg_participations = round(total_participations / max(total_hetero_enrollments, 1), 1)
