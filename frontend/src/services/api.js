@@ -14,8 +14,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || "Network error. Please try again.";
-    return Promise.reject(new Error(message));
+    const responseData = error.response?.data || {};
+    const message = responseData.message || "Network error. Please try again.";
+    if (responseData.code === "SESSION_EXPIRED") {
+      ["ff_token", "ff_role", "ff_participant", "ff_mr"].forEach((key) => localStorage.removeItem(key));
+    }
+    const normalizedError = new Error(message);
+    normalizedError.code = responseData.code;
+    normalizedError.status = error.response?.status;
+    return Promise.reject(normalizedError);
   },
 );
 

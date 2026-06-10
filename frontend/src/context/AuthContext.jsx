@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import api from "../services/api";
 import { rememberSelectedCountry } from "../utils/language";
 
@@ -54,6 +54,11 @@ export function AuthProvider({ children }) {
     setRole(null);
     setParticipant(null);
   };
+
+  useEffect(() => {
+    window.addEventListener("ff-session-expired", logout);
+    return () => window.removeEventListener("ff-session-expired", logout);
+  }, []);
 
   const value = useMemo(
     () => ({ token, role, participant, isAuthed: Boolean(token), isAdmin: role === "admin", login, userLogin, enroll, logout }),

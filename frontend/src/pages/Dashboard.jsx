@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { FaBell, FaFutbol, FaStar } from "react-icons/fa";
 import CountdownTimer from "../components/CountdownTimer";
 import LoadingSkeleton from "../components/LoadingSkeleton";
@@ -17,6 +18,7 @@ import { localizeMessage } from "../utils/messages";
 export default function Dashboard() {
   const { role } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const today = new Date();
   const clientDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const { data, loading, error, refresh } = useApi(
@@ -25,6 +27,12 @@ export default function Dashboard() {
   );
   const [drafts, setDrafts] = useState({});
   const [toast, setToast] = useState("");
+  const [toastAction, setToastAction] = useState(null);
+
+  const closeToast = () => {
+    setToast("");
+    setToastAction(null);
+  };
 
   const updateDraft = (matchId, key, value) => {
     setDrafts((current) => ({ ...current, [matchId]: { ...(current[matchId] || {}), [key]: value } }));
@@ -42,9 +50,21 @@ export default function Dashboard() {
       if (prediction) await api.put(`/predictions/${prediction.id}`, payload);
       else await api.post("/predictions", payload);
       setToast(t("toast.predictionSaved", "Prediction saved. You can edit until kickoff."));
+      setToastAction(null);
       refresh();
     } catch (err) {
       setToast(localizeMessage(err.message, t));
+      setToastAction(
+        err.code === "SESSION_EXPIRED"
+          ? {
+              label: t("common.loginAgain", "Login again"),
+              action: () => {
+                window.dispatchEvent(new Event("ff-session-expired"));
+                navigate("/user-login", { replace: true });
+              },
+            }
+          : null,
+      );
     }
   };
 
@@ -58,7 +78,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <IdentityHeader nameLabel={role === "hetero_rep" ? t("identity.participantName", "Participant name") : t("identity.nameFarmacist", "Name of the Farmacist")} />
-      <Toast message={toast} onClose={() => setToast("")} tone={toast.includes("saved") ? "gold" : "error"} />
+      <Toast message={toast} onClose={closeToast} actionLabel={toastAction?.label} onAction={toastAction?.action} tone={toast.includes("saved") ? "gold" : "error"} />
       <Announcements announcements={data?.announcements || []} />
 {/* 
       <div className="flex flex-col justify-between gap-2 text-center md:items-center">

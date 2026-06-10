@@ -5,7 +5,10 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env", override=False)
 
+import json
+
 from flask import Flask, jsonify, request, send_from_directory
+from flask_jwt_extended import get_jwt, get_jwt_identity, verify_jwt_in_request
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
@@ -27,6 +30,7 @@ def create_app(config_class=Config):
 
     register_blueprints(app)
     register_football_sync_hook(app)
+    register_api_error_logging(app)
     register_error_handlers(app)
     register_frontend_routes(app)
 
@@ -68,6 +72,56 @@ def register_football_sync_hook(app):
         except Exception:
             app.logger.exception("Football API smart sync hook failed")
         return None
+
+
+def register_api_error_logging(app):
+    @app.after_request
+    def log_api_error_response(response):
+        if response.status_code < 400 or not (request.path or "").startswith("/api/"):
+            return response
+
+        identity = None
+        role = None
+        try:
+            verify_jwt_in_request(optional=True)
+            identity = get_jwt_identity()
+            role = get_jwt().get("role")
+        except Exception:
+            identity = None
+            role = None
+
+        response_json = response.get_json(silent=True) if response.is_json else None
+        request_json = request.get_json(silent=True) if request.is_json else None
+        safe_request = {}
+        if isinstance(request_json, dict):
+            allowed_keys = {
+                "action",
+                "country",
+                "country_code",
+                "favorite_drug",
+                "match_id",
+                "participant_type",
+                "predicted_team",
+                "winner_team",
+            }
+            safe_request = {key: request_json.get(key) for key in allowed_keys if key in request_json}
+
+        app.logger.warning(
+            "api_error_response %s",
+            json.dumps(
+                {
+                    "method": request.method,
+                    "path": request.path,
+                    "status_code": response.status_code,
+                    "identity": identity,
+                    "role": role,
+                    "response": response_json,
+                    "request": safe_request,
+                },
+                default=str,
+            ),
+        )
+        return response
 
 
 def register_error_handlers(app):
