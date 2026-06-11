@@ -221,7 +221,7 @@ def apply_payload(sync_type, payload):
             usage_snapshots.append(detail_usage)
             if detail_item:
                 item = detail_item
-        _, action = apply_api_match(item)
+        _, action = apply_api_match(sync_type, item)
         stats[action] = stats.get(action, 0) + 1
         synced += 1
     return synced, extra_requests, usage_snapshots, stats
@@ -239,6 +239,7 @@ def add_upcoming_sync_summary(sync_type, stats):
         return
     processed = sum(stats.values())
     same_kickoff = stats.get("same_kickoff", 0)
+    finalized_skipped = stats.get("finalized_skipped", 0)
     created = stats.get("created", 0)
     rescheduled = stats.get("rescheduled", 0)
     updated = stats.get("updated", 0)
@@ -246,6 +247,7 @@ def add_upcoming_sync_summary(sync_type, stats):
     details = (
         f"Upcoming sync checked {processed} API matches. "
         f"{same_kickoff} already existed with the same kickoff time. "
+        f"{finalized_skipped} already finalized locally and skipped. "
         f"{created} new matches added. "
         f"{rescheduled} rescheduled. "
         f"{updated} updated."
@@ -309,12 +311,15 @@ def configured_league_ids():
     return sorted(configured)
 
 
-def apply_api_match(item):
+def apply_api_match(sync_type, item):
     api_match_id = str(item.get("match_id"))
     if not api_match_id:
         return None, "skipped"
 
     match = Match.query.filter_by(api_match_id=api_match_id).first()
+    if sync_type == "upcoming" and match and match.status in {"completed", "cancelled"}:
+        return match, "finalized_skipped"
+
     is_new = match is None
     had_same_kickoff = False
     if match:
