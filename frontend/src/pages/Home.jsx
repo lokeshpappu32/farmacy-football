@@ -48,20 +48,20 @@ export default function Home() {
 
   return (
     <main
-      className="relative flex min-h-screen flex-col overflow-x-hidden bg-cover bg-center text-white"
+      className="relative flex min-h-screen flex-col overflow-x-hidden bg-cover bg-center text-white lg:h-screen lg:overflow-hidden"
       style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
       <div className="absolute inset-0 bg-black/10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.08)_42%,rgba(0,0,0,0.22)_100%)]" />
       <div className="absolute inset-0 bg-emerald-950/12" />
 
-      <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-4 text-center sm:py-5">
-        <BrandHeaderLogos className="mt-1" logoClassName="h-16 w-32 sm:h-20 sm:w-40 lg:h-24 lg:w-48" />
+      <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-3 text-center sm:py-4 lg:py-2">
+        <BrandHeaderLogos className="mt-1 lg:mt-0" logoClassName="h-16 w-32 sm:h-20 sm:w-40 lg:h-16 lg:w-32 xl:h-20 xl:w-40" />
 
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-16 pt-4 sm:pb-20 sm:pt-5">
-          <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-100" />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-8 pt-3 sm:pb-12 sm:pt-4 lg:pb-4 lg:pt-1">
+          <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-[.76] xl:scale-[.86]" />
 
-          <div className="mt-6 grid w-full max-w-4xl gap-5 text-left text-xs font-semibold uppercase tracking-wide sm:mt-8 sm:text-sm lg:grid-cols-[1fr_auto_1fr] lg:text-base">
+          <div className="mt-6 grid w-full max-w-4xl gap-5 text-left text-xs font-semibold uppercase tracking-wide sm:mt-8 sm:text-sm lg:mt-3 lg:grid-cols-[1fr_auto_1fr] lg:gap-4 lg:text-sm xl:mt-5 xl:text-base">
             <RoleGroup title={t("home.farmacistType", "Farmacist Type")} options={pharmacyOptions} selectedType={selectedType} onChange={setVisitorType} />
             <div className="hidden w-px bg-white/70 lg:block" />
             <RoleGroup title={t("home.heteroRepStaff", "Hetero Representative / Staff")} options={heteroOptions} selectedType={selectedType} onChange={setVisitorType} />
@@ -69,21 +69,20 @@ export default function Home() {
 
           <Link
             to={enrollUrl}
-            className="mt-6 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-10 py-3 text-xl font-black uppercase leading-none text-white shadow-[0_14px_30px_rgba(0,0,0,0.35)] transition hover:scale-[1.02] hover:brightness-110 sm:mt-8 sm:px-12 sm:py-4 sm:text-2xl"
+            className="mt-6 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 px-10 py-3 text-xl font-black uppercase leading-none text-white shadow-[0_14px_30px_rgba(0,0,0,0.35)] transition hover:scale-[1.02] hover:brightness-110 sm:mt-8 sm:px-12 sm:py-4 sm:text-2xl lg:mt-4 lg:px-10 lg:py-3 lg:text-xl xl:mt-6 xl:text-2xl"
           >
             {t("home.enroll", "Enroll")}
           </Link>
           <Link
             to="/login"
-            className="mt-5 text-sm font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:text-base"
+            className="mt-5 text-sm font-semibold text-white/90 underline-offset-4 hover:text-white hover:underline sm:text-base lg:mt-3"
           >
             {t("enroll.adminLogin", "Login - if you are Admin")}
           </Link>
         </div>
-
-        <HomeLanguageSelector language={language} onChange={setManualLanguage} />
       </section>
-      <AppFooter compact showClientLogos />
+      <HomeLanguageSelector language={language} onChange={setManualLanguage} />
+      <AppFooter compact showClientLogos showTranslator={false} />
     </main>
   );
 }
@@ -96,7 +95,7 @@ function HomeLanguageSelector({ language, onChange }) {
     ["ru", "Русский"],
   ];
   return (
-    <div className="absolute bottom-2 left-1/2 grid w-[min(92vw,360px)] -translate-x-1/2 grid-cols-2 gap-1.5 rounded-2xl border border-white/15 bg-black/40 p-2 text-xs font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm sm:bottom-4 sm:w-[360px] sm:text-sm">
+    <div className="relative z-10 mx-auto mb-3 grid w-[min(92vw,360px)] grid-cols-2 gap-1.5 rounded-2xl border border-white/15 bg-black/40 p-2 text-xs font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] backdrop-blur-sm sm:mb-4 sm:w-[360px] sm:text-sm lg:mb-2 lg:w-[320px] lg:p-1.5 lg:text-xs xl:w-[360px] xl:p-2 xl:text-sm">
       {options.map(([value, label]) => (
         <button
           key={value}
