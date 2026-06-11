@@ -4,6 +4,8 @@ from app.extensions import db
 from app.models import Country, Match, Participant, PointsHistory, Prediction
 from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 
+SQL_IN_CHUNK_SIZE = 1000
+
 
 def apply_dense_ranks(rows, score_key):
     ranked_rows = []
@@ -20,6 +22,26 @@ def apply_dense_ranks(rows, score_key):
 
 def country_flag_map():
     return {country.name: country.flag_url for country in Country.query.filter(Country.flag_url.isnot(None)).all()}
+
+
+def chunked(values, size=SQL_IN_CHUNK_SIZE):
+    values = list(values or [])
+    for index in range(0, len(values), size):
+        yield values[index : index + size]
+
+
+def prediction_rows_for_participants(participant_ids):
+    rows = []
+    for participant_chunk in chunked(participant_ids):
+        rows.extend(Prediction.query.filter(Prediction.participant_id.in_(participant_chunk)).all())
+    return rows
+
+
+def prediction_count_for_participants(participant_ids):
+    return sum(
+        Prediction.query.filter(Prediction.participant_id.in_(participant_chunk)).count()
+        for participant_chunk in chunked(participant_ids)
+    )
 
 
 def leaderboard(country=None, medical_rep_name=None, medical_rep_mobile_number=None, limit=100):
@@ -59,11 +81,7 @@ def mr_participation_rankings(country=None, limit=500):
             Participant.medical_rep_mobile_number == rep.mobile_number,
         ).all()
         pharmacist_ids = [user.id for user in pharmacists]
-        participations = (
-            Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count()
-            if pharmacist_ids
-            else 0
-        )
+        participations = prediction_count_for_participants(pharmacist_ids) if pharmacist_ids else 0
         rows.append(
             {
                 "id": rep.id,
@@ -119,7 +137,7 @@ def mr_country_rankings():
             if enrolling_rep_mobiles
             else 0
         )
-        total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
+        total_participations = prediction_count_for_participants(pharmacist_ids) if pharmacist_ids else 0
         avg_participations = round(total_participations / max(total_hetero_enrollments, 1), 1)
         rank_score = (
             (1, avg_participations)
@@ -178,7 +196,7 @@ def hetero_rep_participation_performance(rep_id, country=None):
         "summary": {
             "enrollments": len(pharmacists),
             "participations": summary["predictions"],
-            "active_farmacists": len({row.participant_id for row in Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).all()}) if pharmacist_ids else 0,
+            "active_farmacists": len({row.participant_id for row in prediction_rows_for_participants(pharmacist_ids)}) if pharmacist_ids else 0,
             "accuracy": summary["accuracy"],
             "participation_rate": summary["participation_rate"],
             "global_rank": own_global_rank,
@@ -199,7 +217,7 @@ def mr_dashboard_analytics(country=None):
     all_rankings = mr_participation_rankings()
     total_enrollments = Participant.query.filter(Participant.participant_type.in_(PHARMACY_TYPES)).count()
     pharmacist_ids = [row[0] for row in db.session.query(Participant.id).filter(Participant.participant_type.in_(PHARMACY_TYPES)).all()]
-    total_participations = Prediction.query.filter(Prediction.participant_id.in_(pharmacist_ids)).count() if pharmacist_ids else 0
+    total_participations = prediction_count_for_participants(pharmacist_ids) if pharmacist_ids else 0
     countries = [
         row[0]
         for row in db.session.query(Participant.country)
@@ -226,7 +244,7 @@ def mr_dashboard_analytics(country=None):
 def prediction_summary_for_participants(participant_ids):
     if not participant_ids:
         return {"predictions": 0, "correct": 0, "wrong": 0, "pending": 0, "accuracy": 0, "participation_rate": 0}
-    rows = Prediction.query.filter(Prediction.participant_id.in_(participant_ids)).all()
+    rows = prediction_rows_for_participants(participant_ids)
     correct = sum(1 for row in rows if row.is_correct is True)
     wrong = sum(1 for row in rows if row.is_correct is False)
     pending = sum(1 for row in rows if row.is_correct is None)
@@ -294,15 +312,39 @@ def top_medical_rep_analytics(limit=10):
 
 
 def favorite_drug_summary(limit=8, participant_ids=None):
+    if participant_ids is not None:
+        if not participant_ids:
+            return []
+        totals = {}
+        unique_users_by_drug = {}
+        for participant_chunk in chunked(participant_ids):
+            rows = (
+                db.session.query(
+                    Prediction.favorite_drug,
+                    func.count(Prediction.id).label("selection_count"),
+                    func.count(db.distinct(Prediction.participant_id)).label("unique_users"),
+                )
+                .filter(
+                    Prediction.participant_id.in_(participant_chunk),
+                    Prediction.favorite_drug.isnot(None),
+                    Prediction.favorite_drug != "",
+                )
+                .group_by(Prediction.favorite_drug)
+                .all()
+            )
+            for drug, count, unique_users in rows:
+                totals[drug] = totals.get(drug, 0) + int(count)
+                unique_users_by_drug[drug] = unique_users_by_drug.get(drug, 0) + int(unique_users)
+        return [
+            {"favorite_drug": drug, "selection_count": count, "unique_users": unique_users_by_drug.get(drug, 0)}
+            for drug, count in sorted(totals.items(), key=lambda item: item[1], reverse=True)[:limit]
+        ]
+
     query = db.session.query(
         Prediction.favorite_drug,
         func.count(Prediction.id).label("selection_count"),
         func.count(db.distinct(Prediction.participant_id)).label("unique_users"),
     )
-    if participant_ids is not None:
-        if not participant_ids:
-            return []
-        query = query.filter(Prediction.participant_id.in_(participant_ids))
     rows = (
         query.filter(Prediction.favorite_drug.isnot(None), Prediction.favorite_drug != "")
         .group_by(Prediction.favorite_drug)
