@@ -278,9 +278,10 @@ def analytics():
 def drug_analytics():
     maybe_sync_football_data("admin_analytics", role="admin", user_id="admin", sync_types=["results"])
     country = request.args.get("country", "").strip()
-    city = request.args.get("city", "").strip()
-    mr_id = request.args.get("mr_id", "").strip()
+    participant_type = request.args.get("participant_type", request.args.get("user_type", "")).strip()
     sort = request.args.get("sort", "most").strip().lower()
+    page = positive_int(request.args.get("page"), 1)
+    per_page = min(positive_int(request.args.get("per_page"), 25), 100)
 
     query = (
         db.session.query(
@@ -292,33 +293,34 @@ def drug_analytics():
     )
     if country:
         query = query.filter(Participant.country == country)
-    if city:
-        query = query.filter(Participant.city == city)
-    if mr_id:
-        query = query.filter(Participant.mr_id == mr_id.upper())
+    query = apply_participant_type_filter(query, participant_type)
     order = db.asc("selection_count") if sort == "least" else db.desc("selection_count")
     drug_rows = query.group_by(Prediction.favorite_drug).order_by(order).all()
 
     answer_query = Prediction.query.join(Participant, Participant.id == Prediction.participant_id).join(Match, Match.id == Prediction.match_id)
     if country:
         answer_query = answer_query.filter(Participant.country == country)
-    if city:
-        answer_query = answer_query.filter(Participant.city == city)
-    if mr_id:
-        answer_query = answer_query.filter(Participant.mr_id == mr_id.upper())
+    answer_query = apply_participant_type_filter(answer_query, participant_type)
+
+    answer_page = answer_query.order_by(Prediction.submitted_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    filtered_answers_count = answer_query.count()
+    unique_users_count = (
+        answer_query.with_entities(db.func.count(db.distinct(Prediction.participant_id))).scalar()
+        or 0
+    )
+    pending_results_count = answer_query.filter(Prediction.is_correct.is_(None)).count()
 
     countries = [row[0] for row in db.session.query(Participant.country).filter(Participant.country.isnot(None)).distinct().order_by(Participant.country).all()]
-    cities_query = db.session.query(Participant.city).filter(Participant.city.isnot(None), Participant.city != "")
-    if country:
-        cities_query = cities_query.filter(Participant.country == country)
-    cities = [row[0] for row in cities_query.distinct().order_by(Participant.city).all()]
-    mr_ids = [row[0] for row in db.session.query(Participant.mr_id).filter(Participant.mr_id.isnot(None), Participant.mr_id != "").distinct().order_by(Participant.mr_id).all()]
 
     return {
-        "filters": {"country": country, "city": city, "mr_id": mr_id.upper() if mr_id else "", "sort": sort},
+        "filters": {"country": country, "participant_type": participant_type, "sort": sort},
         "countries": countries,
-        "cities": cities,
-        "mr_ids": mr_ids,
+        "participant_types": participant_type_options(),
+        "summary": {
+            "answers": int(filtered_answers_count),
+            "unique_users": int(unique_users_count),
+            "pending_results": int(pending_results_count),
+        },
         "drugs": [
             {"favorite_drug": drug, "selection_count": int(count), "unique_users": int(unique_users)}
             for drug, count, unique_users in drug_rows
@@ -332,17 +334,35 @@ def drug_analytics():
                 "country": prediction.participant.country,
                 "city": prediction.participant.city,
                 "mr_id": prediction.participant.mr_id,
+                "participant_type": prediction.participant.participant_type,
+                "total_points": prediction.participant.total_points,
                 "match": f"{prediction.match.team1} vs {prediction.match.team2}",
                 "match_status": prediction.match.status,
                 "match_result": prediction.match.result_label(),
+                "winner_team": prediction.match.winner_team,
                 "predicted_team": prediction.predicted_team,
                 "favorite_drug": prediction.favorite_drug,
                 "is_correct": prediction.is_correct,
+                "participation_points": prediction.participation_points,
+                "winner_points": prediction.winner_points,
                 "submitted_at": utc_iso(prediction.submitted_at),
             }
-            for prediction in answer_query.order_by(Prediction.submitted_at.desc()).limit(500).all()
+            for prediction in answer_page.items
         ],
+        "pagination": pagination_payload(answer_page),
     }
+
+
+def apply_participant_type_filter(query, participant_type):
+    if not participant_type:
+        return query
+    if participant_type == "all_farmacists":
+        return query.filter(Participant.participant_type.in_(PHARMACY_TYPES))
+    if participant_type == "farmacy_head_supervisor":
+        return query.filter(Participant.participant_type.in_({"farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor"}))
+    if participant_type == "hetero_representative_staff":
+        return query.filter(Participant.participant_type.in_(HETERO_TYPES))
+    return query.filter(Participant.participant_type == participant_type)
 
 
 @admin_bp.get("/export/users.csv")
