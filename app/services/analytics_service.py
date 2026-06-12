@@ -52,7 +52,10 @@ def leaderboard(country=None, medical_rep_name=None, medical_rep_mobile_number=N
         query = query.filter(Participant.medical_rep_mobile_number == medical_rep_mobile_number)
     elif medical_rep_name:
         query = query.filter(Participant.medical_rep_name == medical_rep_name)
-    users = query.order_by(Participant.total_points.desc(), Participant.created_at.asc()).limit(limit).all()
+    query = query.order_by(Participant.total_points.desc(), Participant.created_at.asc())
+    if limit:
+        query = query.limit(limit)
+    users = query.all()
     flags = country_flag_map()
     rows = [{**user.to_dict(), "country_flag_url": flags.get(user.country)} for user in users]
     return apply_dense_ranks(rows, "total_points")

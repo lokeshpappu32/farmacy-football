@@ -36,7 +36,7 @@ def public_leaderboard():
             country=country,
             medical_rep_name=medical_rep_name,
             medical_rep_mobile_number=medical_rep_mobile_number,
-            limit=100,
+            limit=None,
         ),
     }
 

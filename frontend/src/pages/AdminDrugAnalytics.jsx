@@ -9,15 +9,18 @@ import { formatDateTime } from "../utils/datetime";
 
 export default function AdminDrugAnalytics() {
   const { t } = useLanguage();
-  const [filters, setFilters] = useState({ country: "", city: "", mr_id: "", sort: "most" });
+  const [filters, setFilters] = useState({ country: "", participant_type: "", sort: "most" });
+  const [page, setPage] = useState(1);
+  const perPage = 25;
   const drugRequest = useCallback(async () => {
     const params = new URLSearchParams();
     if (filters.country) params.set("country", filters.country);
-    if (filters.city) params.set("city", filters.city);
-    if (filters.mr_id) params.set("mr_id", filters.mr_id);
+    if (filters.participant_type) params.set("participant_type", filters.participant_type);
     params.set("sort", filters.sort);
+    params.set("page", page);
+    params.set("per_page", perPage);
     return (await api.get(`/admin/drug-analytics?${params.toString()}`)).data;
-  }, [filters.country, filters.city, filters.mr_id, filters.sort]);
+  }, [filters.country, filters.participant_type, filters.sort, page]);
   const { data, loading, error } = useApi(drugRequest, [drugRequest]);
 
   const maxDrug = Math.max(...(data?.drugs || []).map((item) => item.selection_count), 1);
@@ -26,11 +29,17 @@ export default function AdminDrugAnalytics() {
     const answers = data?.answers || [];
     const topDrug = drugs[0];
     const uniqueDrugs = drugs.length;
-    const uniqueUsers = new Set(answers.map((answer) => answer.mobile_number || answer.email || answer.participant)).size;
-    const pending = answers.filter((answer) => answer.is_correct === null).length;
+    const uniqueUsers = data?.summary?.unique_users ?? new Set(answers.map((answer) => answer.mobile_number || answer.email || answer.participant)).size;
+    const pending = data?.summary?.pending_results ?? answers.filter((answer) => answer.is_correct === null).length;
     return { topDrug, uniqueDrugs, uniqueUsers, pending };
   }, [data]);
   const answers = data?.answers || [];
+  const pagination = data?.pagination;
+  const participantTypes = data?.participant_types?.length ? data.participant_types : defaultParticipantTypes;
+  const updateFilter = (key, value) => {
+    setPage(1);
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
   const exportAnswers = () => {
     const csv = toCsv(answers);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -49,7 +58,7 @@ export default function AdminDrugAnalytics() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-black">{t("admin.drugAnalytics", "Drug Analytics")}</h1>
-        <p className="mt-2 text-white/60">Favorite Hetero drug responses, filtered by country, city, and MR ID.</p>
+        <p className="mt-2 text-white/60">Favorite brand responses, filtered by country and participant type.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -63,22 +72,18 @@ export default function AdminDrugAnalytics() {
         <div className="grid gap-4 xl:grid-cols-[minmax(220px,420px)_1fr] xl:items-end">
           <div className="min-w-0">
             <h2 className="text-xl font-black">{t("admin.filters", "Filters")}</h2>
-            <p className="text-sm text-white/55">Use these filters to find country-wise, city-wise, or MR-wise drug preference.</p>
+            <p className="text-sm text-white/55">Use these filters to find country-wise and participant-type-wise brand preference.</p>
           </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <select className="input" value={filters.country} onChange={(event) => setFilters((current) => ({ ...current, country: event.target.value, city: "" }))}>
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <select className="input" value={filters.country} onChange={(event) => updateFilter("country", event.target.value)}>
               <option className="bg-black" value="">{t("common.allCountries", "All countries")}</option>
               {(data?.countries || []).map((country) => <option className="bg-black" key={country} value={country}>{country}</option>)}
             </select>
-            <select className="input" value={filters.city} onChange={(event) => setFilters((current) => ({ ...current, city: event.target.value }))}>
-              <option className="bg-black" value="">{t("admin.allCities", "All cities")}</option>
-              {(data?.cities || []).map((city) => <option className="bg-black" key={city} value={city}>{city}</option>)}
+            <select className="input" value={filters.participant_type} onChange={(event) => updateFilter("participant_type", event.target.value)}>
+              <option className="bg-black" value="">{t("admin.allParticipantTypes", "All participant types")}</option>
+              {participantTypes.map((type) => <option className="bg-black" key={type.value} value={type.value}>{type.label}</option>)}
             </select>
-            <select className="input" value={filters.mr_id} onChange={(event) => setFilters((current) => ({ ...current, mr_id: event.target.value }))}>
-              <option className="bg-black" value="">{t("admin.allMrs", "All MRs")}</option>
-              {(data?.mr_ids || []).map((mr) => <option className="bg-black" key={mr} value={mr}>{mr}</option>)}
-            </select>
-            <select className="input" value={filters.sort} onChange={(event) => setFilters((current) => ({ ...current, sort: event.target.value }))}>
+            <select className="input" value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value)}>
               <option className="bg-black" value="most">Most selected</option>
               <option className="bg-black" value="least">Least selected</option>
             </select>
@@ -118,23 +123,26 @@ export default function AdminDrugAnalytics() {
               <p className="text-sm text-white/55">Participant-level answer details for Hetero product insight.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="w-fit shrink-0 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">{answers.length} rows</span>
+              <span className="w-fit shrink-0 rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">{pagination?.total ?? answers.length} rows</span>
+              <PaginationControls meta={pagination} onPage={setPage} />
               <button className="btn-primary" onClick={exportAnswers}>{t("admin.exportCsv", "Export CSV")}</button>
             </div>
           </div>
           <div className="scroll-panel max-h-[560px] min-w-0 overflow-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[1080px] text-left text-sm">
+            <table className="w-full min-w-[1320px] text-left text-sm">
               <thead className="sticky top-0 bg-zinc-950 text-white/55">
                 <tr>
                   <th className="p-3">Participant</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Country</th>
-                  <th className="p-3">City</th>
-                  <th className="p-3">MR ID</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Points</th>
                   <th className="p-3">Match</th>
                   <th className="p-3">Match Status</th>
+                  <th className="p-3">Winner</th>
                   <th className="p-3">Prediction</th>
                   <th className="p-3">Drug</th>
+                  <th className="p-3">Earned</th>
                   <th className="p-3">Result</th>
                   <th className="p-3">Submitted</th>
                 </tr>
@@ -145,15 +153,17 @@ export default function AdminDrugAnalytics() {
                     <td className="p-3 font-bold">{answer.participant}</td>
                     <td className="p-3">{answer.email || "-"}</td>
                     <td className="p-3">{answer.country}</td>
-                    <td className="p-3">{answer.city || "-"}</td>
-                    <td className="p-3">{answer.mr_id}</td>
+                    <td className="p-3">{typeLabel(answer.participant_type)}</td>
+                    <td className="p-3 font-black text-gold">{answer.total_points}</td>
                     <td className="p-3">{answer.match}</td>
                     <td className="p-3">
                       <div className="font-bold capitalize">{answer.match_status}</div>
                       <div className="text-xs text-white/45">{answer.match_result}</div>
                     </td>
+                    <td className="p-3">{answer.winner_team || "-"}</td>
                     <td className="p-3">{answer.predicted_team}</td>
                     <td className="p-3 font-black text-gold">{answer.favorite_drug}</td>
+                    <td className="p-3">{Number(answer.participation_points || 0) + Number(answer.winner_points || 0)}</td>
                     <td className="p-3">{answer.is_correct === null ? "Pending" : answer.is_correct ? "Correct" : "No bonus"}</td>
                     <td className="p-3">{formatDateTime(answer.submitted_at)}</td>
                   </tr>
@@ -161,8 +171,43 @@ export default function AdminDrugAnalytics() {
               </tbody>
             </table>
           </div>
+          <div className="mt-4 flex justify-end">
+            <PaginationControls meta={pagination} onPage={setPage} />
+          </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+const defaultParticipantTypes = [
+  { value: "all_farmacists", label: "All Farmacists" },
+  { value: "farmacy_owner", label: "Farmacy Owner" },
+  { value: "farmacy_head_supervisor", label: "Farmacy Head / Supervisor" },
+  { value: "farmacy_sales_staff", label: "Farmacy Sales Staff" },
+  { value: "hetero_representative_staff", label: "HETERO Representative / Staff" },
+];
+
+function typeLabel(value) {
+  const option = defaultParticipantTypes.find((item) => {
+    if (item.value === "farmacy_head_supervisor") return ["farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor"].includes(value);
+    if (item.value === "hetero_representative_staff") return ["hetero_representative_staff", "hetero_staff", "hetero_representative", "medical_rep"].includes(value);
+    return item.value === value;
+  });
+  return option?.label || "Farmacist";
+}
+
+function PaginationControls({ meta, onPage }) {
+  if (!meta || meta.pages <= 1) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <button className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45" disabled={!meta.has_prev} onClick={() => onPage(meta.page - 1)}>
+        Prev
+      </button>
+      <span className="min-w-14 text-center text-xs font-bold text-white/60">{meta.page}/{meta.pages}</span>
+      <button className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45" disabled={!meta.has_next} onClick={() => onPage(meta.page + 1)}>
+        Next
+      </button>
     </div>
   );
 }
@@ -172,13 +217,15 @@ function toCsv(answers) {
     "participant",
     "email",
     "country",
-    "city",
-    "mr_id",
+    "participant_type",
+    "total_points",
     "match",
     "match_status",
     "match_result",
+    "winner_team",
     "predicted_team",
     "favorite_drug",
+    "earned_points",
     "result",
     "submitted_at",
   ];
@@ -186,13 +233,15 @@ function toCsv(answers) {
     answer.participant,
     answer.email || "",
     answer.country,
-    answer.city || "",
-    answer.mr_id || "",
+    typeLabel(answer.participant_type),
+    answer.total_points || 0,
     answer.match,
     answer.match_status,
     answer.match_result,
+    answer.winner_team || "",
     answer.predicted_team,
     answer.favorite_drug,
+    Number(answer.participation_points || 0) + Number(answer.winner_points || 0),
     answer.is_correct === null ? "Pending" : answer.is_correct ? "Correct" : "No bonus",
     formatDateTime(answer.submitted_at),
   ]);
