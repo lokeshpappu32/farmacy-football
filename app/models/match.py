@@ -90,6 +90,8 @@ class Match(db.Model):
             return "Draw"
         if self.winner_team:
             return f"{self.winner_team} won"
+        if self.status == "completed":
+            return "Result pending"
         return self.status.title()
 
 

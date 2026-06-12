@@ -263,7 +263,8 @@ def should_confirm_match(sync_type, item):
     api_match_id = item.get("match_id")
     if not api_match_id:
         return False
-    return Match.query.filter_by(api_match_id=str(api_match_id)).first() is not None
+    match = Match.query.filter_by(api_match_id=str(api_match_id)).first()
+    return match is not None and not is_finalized_match(match)
 
 
 def fetch_match_detail(item):
@@ -317,7 +318,7 @@ def apply_api_match(sync_type, item):
         return None, "skipped"
 
     match = Match.query.filter_by(api_match_id=api_match_id).first()
-    if sync_type == "upcoming" and match and match.status in {"completed", "cancelled"}:
+    if match and is_finalized_match(match):
         return match, "finalized_skipped"
 
     is_new = match is None
@@ -332,10 +333,11 @@ def apply_api_match(sync_type, item):
 
     home = item.get("home_team") or {}
     away = item.get("away_team") or {}
-    match.team1 = home.get("team_name") or match.team1 or "Team 1"
-    match.team2 = away.get("team_name") or match.team2 or "Team 2"
-    match.team1_logo = home.get("team_logo") or match.team1_logo
-    match.team2_logo = away.get("team_logo") or match.team2_logo
+    if is_new:
+        match.team1 = home.get("team_name") or "Team 1"
+        match.team2 = away.get("team_name") or "Team 2"
+        match.team1_logo = home.get("team_logo")
+        match.team2_logo = away.get("team_logo")
     venue = item.get("venue") or {}
     match.venue_name = venue.get("stadium_name") or match.venue_name
     match.venue_location = venue.get("stadium_location") or match.venue_location
@@ -365,9 +367,9 @@ def apply_api_match(sync_type, item):
                 manual_update_winner(match, winner, source="api")
                 return match, "completed"
         else:
-            match.status = "completed"
-            db.session.commit()
-            return match, "completed"
+            match.status = "live"
+            db.session.add(match)
+            return match, "updated"
         return match, "same_kickoff" if had_same_kickoff else "updated"
 
     if is_new:
@@ -388,6 +390,14 @@ def apply_api_match(sync_type, item):
     match.status = api_status
     db.session.add(match)
     return match, "same_kickoff" if had_same_kickoff else "updated"
+
+
+def is_finalized_match(match):
+    if not match:
+        return False
+    if match.status == "cancelled":
+        return True
+    return match.status == "completed" and bool(match.winner_team)
 
 
 def parse_api_datetime(item):
@@ -424,17 +434,54 @@ def normalize_status(item, match_datetime):
 
 def winner_from_score(item, match):
     score = item.get("score") or {}
-    winner = score.get("winner")
-    if winner == "home":
+    winner = str(score.get("winner") or item.get("winner") or "").lower()
+    if winner in {"home", "home_team", "team1", "1"}:
         return match.team1
-    if winner == "away":
+    if winner in {"away", "away_team", "team2", "2"}:
         return match.team2
-    home = score.get("home")
-    away = score.get("away")
+    if winner in {"draw", "tie", "x"}:
+        return "Draw"
+    home = first_score_value(item, "home")
+    away = first_score_value(item, "away")
     if home is not None and away is not None and int(home) == int(away):
         return "Draw"
     if home is not None and away is not None:
         return match.team1 if int(home) > int(away) else match.team2
+    return None
+
+
+def first_score_value(item, side):
+    score = item.get("score") or {}
+    candidate_keys = (
+        side,
+        f"{side}_score",
+        f"{side}_goals",
+        f"{side}_team_score",
+        f"{side}TeamScore",
+    )
+    for source in (score, item):
+        value = first_numeric_value(source, candidate_keys)
+        if value is not None:
+            return value
+    for nested_key in ("fulltime", "full_time", "regular_time", "ft"):
+        nested = score.get(nested_key) if isinstance(score, dict) else None
+        value = first_numeric_value(nested or {}, candidate_keys)
+        if value is not None:
+            return value
+    return None
+
+
+def first_numeric_value(source, keys):
+    if not isinstance(source, dict):
+        return None
+    for key in keys:
+        value = source.get(key)
+        if value is None or value == "":
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
     return None
 
 
