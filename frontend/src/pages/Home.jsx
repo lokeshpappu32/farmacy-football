@@ -48,17 +48,17 @@ export default function Home() {
 
   return (
     <main
-      className="relative flex min-h-screen flex-col overflow-x-hidden bg-cover bg-center text-white lg:h-screen lg:overflow-hidden"
+      className="relative flex min-h-screen flex-col overflow-x-hidden bg-cover bg-center text-white"
       style={{ backgroundImage: "url('/images/bg-with-lines.png')" }}
     >
       <div className="absolute inset-0 bg-black/10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.08)_42%,rgba(0,0,0,0.22)_100%)]" />
       <div className="absolute inset-0 bg-emerald-950/12" />
 
-      <section className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-6xl flex-col items-center px-5 py-3 text-center sm:py-4 lg:py-2">
+      <section className="relative z-10 mx-auto flex flex-1 w-full max-w-6xl flex-col items-center px-5 py-3 text-center sm:py-4 lg:py-2">
         <BrandHeaderLogos className="mt-1 lg:mt-0" logoClassName="h-16 w-32 sm:h-20 sm:w-40 lg:h-16 lg:w-32 xl:h-20 xl:w-40" />
 
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-8 pt-3 sm:pb-12 sm:pt-4 lg:pb-4 lg:pt-1">
+        <div className="flex flex-1 flex-col items-center justify-center pb-8 pt-3 sm:pb-12 sm:pt-4 lg:pb-4 lg:pt-1">
           <FootballLogo className="scale-[.82] sm:scale-90 lg:scale-[.76] xl:scale-[.86]" />
 
           <div className="mt-6 grid w-full max-w-4xl gap-5 text-left text-xs font-semibold uppercase tracking-wide sm:mt-8 sm:text-sm lg:mt-3 lg:grid-cols-[1fr_auto_1fr] lg:gap-4 lg:text-sm xl:mt-5 xl:text-base">
