@@ -7,6 +7,10 @@ from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 SQL_IN_CHUNK_SIZE = 1000
 
 
+def bool_case(column, expected):
+    return case((column == expected, 1), else_=0)
+
+
 def apply_dense_ranks(rows, score_key):
     ranked_rows = []
     previous_score = None
@@ -47,8 +51,8 @@ def prediction_count_for_participants(participant_ids):
 def prediction_summary_query(query):
     row = query.with_entities(
         func.count(Prediction.id),
-        func.coalesce(func.sum(case((Prediction.is_correct.is_(True), 1), else_=0)), 0),
-        func.coalesce(func.sum(case((Prediction.is_correct.is_(False), 1), else_=0)), 0),
+        func.coalesce(func.sum(bool_case(Prediction.is_correct, True)), 0),
+        func.coalesce(func.sum(bool_case(Prediction.is_correct, False)), 0),
         func.coalesce(func.sum(case((Prediction.is_correct.is_(None), 1), else_=0)), 0),
         func.count(func.distinct(Prediction.participant_id)),
     ).one()
@@ -75,8 +79,8 @@ def participant_prediction_stats_subquery():
         db.session.query(
             Prediction.participant_id.label("participant_id"),
             func.count(Prediction.id).label("predictions"),
-            func.coalesce(func.sum(case((Prediction.is_correct.is_(True), 1), else_=0)), 0).label("correct"),
-            func.coalesce(func.sum(case((Prediction.is_correct.is_(False), 1), else_=0)), 0).label("wrong"),
+            func.coalesce(func.sum(bool_case(Prediction.is_correct, True)), 0).label("correct"),
+            func.coalesce(func.sum(bool_case(Prediction.is_correct, False)), 0).label("wrong"),
             func.coalesce(func.sum(case((Prediction.is_correct.is_(None), 1), else_=0)), 0).label("pending"),
         )
         .group_by(Prediction.participant_id)
@@ -254,6 +258,8 @@ def mr_country_rankings():
 
 def hetero_rep_participation_performance(rep_id, country=None):
     rep = db.session.get(Participant, rep_id)
+    if not rep or rep.participant_type not in HETERO_TYPES:
+        return {"message": "Representative not found."}, 404
     pharmacists = Participant.query.filter(
         Participant.participant_type.in_(PHARMACY_TYPES),
         Participant.medical_rep_mobile_number == rep.mobile_number,
