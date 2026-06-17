@@ -73,6 +73,8 @@ def rep_standing():
 def rep_farmacist_standing():
     identity = int(get_jwt_identity())
     data = hetero_rep_participation_performance(identity)
+    if isinstance(data, tuple):
+        return data
     return {"leaderboard": data["farmacist_standings"]}
 
 

@@ -7,6 +7,10 @@ from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 SQL_IN_CHUNK_SIZE = 1000
 
 
+def bool_case(column, expected):
+    return case((column == expected, 1), else_=0)
+
+
 def apply_dense_ranks(rows, score_key):
     ranked_rows = []
     previous_score = None
@@ -44,6 +48,46 @@ def prediction_count_for_participants(participant_ids):
     )
 
 
+def prediction_summary_query(query):
+    row = query.with_entities(
+        func.count(Prediction.id),
+        func.coalesce(func.sum(bool_case(Prediction.is_correct, True)), 0),
+        func.coalesce(func.sum(bool_case(Prediction.is_correct, False)), 0),
+        func.coalesce(func.sum(case((Prediction.is_correct.is_(None), 1), else_=0)), 0),
+        func.count(func.distinct(Prediction.participant_id)),
+    ).one()
+    total, correct, wrong, pending, active = (int(value or 0) for value in row)
+    return {
+        "predictions": total,
+        "correct": correct,
+        "wrong": wrong,
+        "pending": pending,
+        "active_participants": active,
+        "accuracy": round((correct / max(correct + wrong, 1)) * 100, 1),
+    }
+
+
+def global_prediction_summary(total_participants=None):
+    summary = prediction_summary_query(Prediction.query)
+    total_participants = Participant.query.count() if total_participants is None else total_participants
+    summary["participation_rate"] = round((summary["active_participants"] / max(total_participants, 1)) * 100, 1)
+    return summary
+
+
+def participant_prediction_stats_subquery():
+    return (
+        db.session.query(
+            Prediction.participant_id.label("participant_id"),
+            func.count(Prediction.id).label("predictions"),
+            func.coalesce(func.sum(bool_case(Prediction.is_correct, True)), 0).label("correct"),
+            func.coalesce(func.sum(bool_case(Prediction.is_correct, False)), 0).label("wrong"),
+            func.coalesce(func.sum(case((Prediction.is_correct.is_(None), 1), else_=0)), 0).label("pending"),
+        )
+        .group_by(Prediction.participant_id)
+        .subquery()
+    )
+
+
 def leaderboard(country=None, medical_rep_name=None, medical_rep_mobile_number=None, limit=100):
     query = Participant.query.filter(Participant.participant_type.in_(PHARMACY_TYPES))
     if country:
@@ -76,15 +120,35 @@ def mr_participation_rankings(country=None, limit=500):
     if country:
         reps_query = reps_query.filter(Participant.country == country)
     reps = reps_query.order_by(Participant.country.asc(), Participant.full_name.asc()).all()
-    rows = []
     flags = country_flag_map()
-    for rep in reps:
-        pharmacists = Participant.query.filter(
+
+    stats_query = (
+        db.session.query(
+            Participant.medical_rep_mobile_number.label("rep_mobile"),
+            func.count(func.distinct(Participant.id)).label("enrollments"),
+            func.count(Prediction.id).label("participations"),
+        )
+        .outerjoin(Prediction, Prediction.participant_id == Participant.id)
+        .filter(
             Participant.participant_type.in_(PHARMACY_TYPES),
-            Participant.medical_rep_mobile_number == rep.mobile_number,
-        ).all()
-        pharmacist_ids = [user.id for user in pharmacists]
-        participations = prediction_count_for_participants(pharmacist_ids) if pharmacist_ids else 0
+            Participant.medical_rep_mobile_number.isnot(None),
+            Participant.medical_rep_mobile_number != "",
+        )
+        .group_by(Participant.medical_rep_mobile_number)
+    )
+    stats_by_mobile = {
+        row.rep_mobile: {
+            "enrollments": int(row.enrollments or 0),
+            "participations": int(row.participations or 0),
+        }
+        for row in stats_query.all()
+    }
+
+    rows = []
+    for rep in reps:
+        stats = stats_by_mobile.get(rep.mobile_number, {})
+        enrollments = int(stats.get("enrollments") or 0)
+        participations = int(stats.get("participations") or 0)
         rows.append(
             {
                 "id": rep.id,
@@ -92,9 +156,9 @@ def mr_participation_rankings(country=None, limit=500):
                 "mobile_number": rep.mobile_number,
                 "country": rep.country,
                 "country_flag_url": flags.get(rep.country),
-                "enrollments": len(pharmacists),
+                "enrollments": enrollments,
                 "participations": participations,
-                "avg_participations_per_farmacist": round(participations / max(len(pharmacists), 1), 1),
+                "avg_participations_per_farmacist": round(participations / max(enrollments, 1), 1),
             }
         )
     ranked = sorted(rows, key=lambda row: (row["participations"], row["enrollments"], row["full_name"]), reverse=True)
@@ -102,45 +166,64 @@ def mr_participation_rankings(country=None, limit=500):
 
 
 def mr_country_rankings():
-    rows = []
-    countries = [
-        row[0]
-        for row in db.session.query(Participant.country)
-        .filter(Participant.participant_type.in_(PHARMACY_TYPES | HETERO_TYPES), Participant.country.isnot(None), Participant.country != "")
+    flags = country_flag_map()
+
+    pharmacy_rows = (
+        db.session.query(
+            Participant.country.label("country"),
+            func.count(func.distinct(Participant.id)).label("farmacy_enrollments"),
+            func.count(Prediction.id).label("participations"),
+        )
+        .outerjoin(Prediction, Prediction.participant_id == Participant.id)
+        .filter(Participant.participant_type.in_(PHARMACY_TYPES), Participant.country.isnot(None), Participant.country != "")
+        .group_by(Participant.country)
+        .all()
+    )
+    enrolling_rep_mobiles_by_country = {}
+    for country, mobile in (
+        db.session.query(Participant.country, Participant.medical_rep_mobile_number)
+        .filter(
+            Participant.participant_type.in_(PHARMACY_TYPES),
+            Participant.country.isnot(None),
+            Participant.country != "",
+            Participant.medical_rep_mobile_number.isnot(None),
+            Participant.medical_rep_mobile_number != "",
+        )
         .distinct()
         .all()
-    ]
-    flags = country_flag_map()
-    for country in countries:
-        pharmacist_ids = [
-            row[0]
-            for row in db.session.query(Participant.id)
-            .filter(Participant.participant_type.in_(PHARMACY_TYPES), Participant.country == country)
-            .all()
-        ]
-        total_farmacy_enrollments = len(pharmacist_ids)
-        enrolling_rep_mobiles = [
-            row[0]
-            for row in db.session.query(Participant.medical_rep_mobile_number)
-            .filter(
-                Participant.participant_type.in_(PHARMACY_TYPES),
-                Participant.country == country,
-                Participant.medical_rep_mobile_number.isnot(None),
-                Participant.medical_rep_mobile_number != "",
-            )
-            .distinct()
-            .all()
-        ]
-        total_hetero_enrollments = (
-            Participant.query.filter(
-                Participant.participant_type.in_(HETERO_TYPES),
-                Participant.country == country,
-                Participant.mobile_number.in_(enrolling_rep_mobiles),
-            ).count()
-            if enrolling_rep_mobiles
-            else 0
+    ):
+        enrolling_rep_mobiles_by_country.setdefault(country, set()).add(mobile)
+
+    hetero_mobiles_by_country = {}
+    for country, mobile in (
+        db.session.query(Participant.country, Participant.mobile_number)
+        .filter(
+            Participant.participant_type.in_(HETERO_TYPES),
+            Participant.country.isnot(None),
+            Participant.country != "",
+            Participant.mobile_number.isnot(None),
+            Participant.mobile_number != "",
         )
-        total_participations = prediction_count_for_participants(pharmacist_ids) if pharmacist_ids else 0
+        .all()
+    ):
+        hetero_mobiles_by_country.setdefault(country, set()).add(mobile)
+
+    rows = []
+    countries = set(enrolling_rep_mobiles_by_country) | set(hetero_mobiles_by_country) | {row.country for row in pharmacy_rows}
+    pharmacy_by_country = {
+        row.country: {
+            "farmacy_enrollments": int(row.farmacy_enrollments or 0),
+            "participations": int(row.participations or 0),
+        }
+        for row in pharmacy_rows
+    }
+    for country in countries:
+        pharmacy_stats = pharmacy_by_country.get(country, {})
+        total_farmacy_enrollments = int(pharmacy_stats.get("farmacy_enrollments") or 0)
+        total_participations = int(pharmacy_stats.get("participations") or 0)
+        total_hetero_enrollments = len(
+            hetero_mobiles_by_country.get(country, set()) & enrolling_rep_mobiles_by_country.get(country, set())
+        )
         avg_participations = round(total_participations / max(total_hetero_enrollments, 1), 1)
         rank_score = (
             (1, avg_participations)
@@ -175,6 +258,8 @@ def mr_country_rankings():
 
 def hetero_rep_participation_performance(rep_id, country=None):
     rep = db.session.get(Participant, rep_id)
+    if not rep or rep.participant_type not in HETERO_TYPES:
+        return {"message": "Representative not found."}, 404
     pharmacists = Participant.query.filter(
         Participant.participant_type.in_(PHARMACY_TYPES),
         Participant.medical_rep_mobile_number == rep.mobile_number,
@@ -199,7 +284,7 @@ def hetero_rep_participation_performance(rep_id, country=None):
         "summary": {
             "enrollments": len(pharmacists),
             "participations": summary["predictions"],
-            "active_farmacists": len({row.participant_id for row in prediction_rows_for_participants(pharmacist_ids)}) if pharmacist_ids else 0,
+            "active_farmacists": summary.get("active_participants", 0),
             "accuracy": summary["accuracy"],
             "participation_rate": summary["participation_rate"],
             "global_rank": own_global_rank,
@@ -216,8 +301,8 @@ def hetero_rep_participation_performance(rep_id, country=None):
 
 
 def mr_dashboard_analytics(country=None):
-    rankings = mr_participation_rankings(country=country)
     all_rankings = mr_participation_rankings()
+    rankings = mr_participation_rankings(country=country) if country else all_rankings
     total_enrollments = Participant.query.filter(Participant.participant_type.in_(PHARMACY_TYPES)).count()
     pharmacist_ids = [row[0] for row in db.session.query(Participant.id).filter(Participant.participant_type.in_(PHARMACY_TYPES)).all()]
     total_participations = prediction_count_for_participants(pharmacist_ids) if pharmacist_ids else 0
@@ -246,72 +331,138 @@ def mr_dashboard_analytics(country=None):
 
 def prediction_summary_for_participants(participant_ids):
     if not participant_ids:
-        return {"predictions": 0, "correct": 0, "wrong": 0, "pending": 0, "accuracy": 0, "participation_rate": 0}
-    rows = prediction_rows_for_participants(participant_ids)
-    correct = sum(1 for row in rows if row.is_correct is True)
-    wrong = sum(1 for row in rows if row.is_correct is False)
-    pending = sum(1 for row in rows if row.is_correct is None)
-    participants_with_predictions = len({row.participant_id for row in rows})
+        return {"predictions": 0, "correct": 0, "wrong": 0, "pending": 0, "active_participants": 0, "accuracy": 0, "participation_rate": 0}
+    total = correct = wrong = pending = participants_with_predictions = 0
+    for participant_chunk in chunked(participant_ids):
+        summary = prediction_summary_query(Prediction.query.filter(Prediction.participant_id.in_(participant_chunk)))
+        total += summary["predictions"]
+        correct += summary["correct"]
+        wrong += summary["wrong"]
+        pending += summary["pending"]
+        participants_with_predictions += summary["active_participants"]
     return {
-        "predictions": len(rows),
+        "predictions": total,
         "correct": correct,
         "wrong": wrong,
         "pending": pending,
+        "active_participants": participants_with_predictions,
         "accuracy": round((correct / max(correct + wrong, 1)) * 100, 1),
         "participation_rate": round((participants_with_predictions / max(len(participant_ids), 1)) * 100, 1),
     }
 
 
 def grouped_participant_analytics(group_field, limit=100, base_query=None):
-    query = base_query or Participant.query
-    participants = query.all()
-    groups = {}
-    for participant in participants:
-        key = (getattr(participant, group_field) or "Unknown").strip() or "Unknown"
-        bucket = groups.setdefault(key, {"participants": [], "points": 0})
-        bucket["participants"].append(participant)
-        bucket["points"] += participant.total_points or 0
+    if base_query is not None:
+        participants = base_query.all()
+        groups = {}
+        for participant in participants:
+            key = (getattr(participant, group_field) or "Unknown").strip() or "Unknown"
+            bucket = groups.setdefault(key, {"participants": [], "points": 0})
+            bucket["participants"].append(participant)
+            bucket["points"] += participant.total_points or 0
 
+        rows = []
+        for name, bucket in groups.items():
+            participant_ids = [participant.id for participant in bucket["participants"]]
+            summary = prediction_summary_for_participants(participant_ids)
+            rows.append(
+                {
+                    group_field: name,
+                    "participants": len(participant_ids),
+                    "points": int(bucket["points"] or 0),
+                    "avg_points": round((bucket["points"] or 0) / max(len(participant_ids), 1), 1),
+                    **summary,
+                }
+            )
+        return sorted(rows, key=lambda row: (row["participants"], row["points"]), reverse=True)[:limit]
+
+    stats = participant_prediction_stats_subquery()
+    group_column = getattr(Participant, group_field)
+    grouped_rows = (
+        db.session.query(
+            group_column.label(group_field),
+            func.count(Participant.id).label("participants"),
+            func.coalesce(func.sum(Participant.total_points), 0).label("points"),
+            func.coalesce(func.sum(stats.c.predictions), 0).label("predictions"),
+            func.coalesce(func.sum(stats.c.correct), 0).label("correct"),
+            func.coalesce(func.sum(stats.c.wrong), 0).label("wrong"),
+            func.coalesce(func.sum(stats.c.pending), 0).label("pending"),
+            func.coalesce(func.sum(case((stats.c.predictions > 0, 1), else_=0)), 0).label("active"),
+        )
+        .outerjoin(stats, stats.c.participant_id == Participant.id)
+        .group_by(group_column)
+        .order_by(func.count(Participant.id).desc(), func.coalesce(func.sum(Participant.total_points), 0).desc())
+        .limit(limit)
+        .all()
+    )
     rows = []
-    for name, bucket in groups.items():
-        participant_ids = [participant.id for participant in bucket["participants"]]
-        summary = prediction_summary_for_participants(participant_ids)
+    for row in grouped_rows:
+        participants = int(row.participants or 0)
+        correct = int(row.correct or 0)
+        wrong = int(row.wrong or 0)
+        active = int(row.active or 0)
+        group_value = (getattr(row, group_field) or "Unknown").strip() or "Unknown"
         rows.append(
             {
-                group_field: name,
-                "participants": len(participant_ids),
-                "points": int(bucket["points"] or 0),
-                "avg_points": round((bucket["points"] or 0) / max(len(participant_ids), 1), 1),
-                **summary,
+                group_field: group_value,
+                "participants": participants,
+                "points": int(row.points or 0),
+                "avg_points": round((row.points or 0) / max(participants, 1), 1),
+                "predictions": int(row.predictions or 0),
+                "correct": correct,
+                "wrong": wrong,
+                "pending": int(row.pending or 0),
+                "accuracy": round((correct / max(correct + wrong, 1)) * 100, 1),
+                "participation_rate": round((active / max(participants, 1)) * 100, 1),
             }
         )
-    return sorted(rows, key=lambda row: (row["participants"], row["points"]), reverse=True)[:limit]
+    return rows
 
 
 def top_medical_rep_analytics(limit=10):
-    rows = []
-    rep_names = [
-        row[0]
-        for row in db.session.query(Participant.medical_rep_name)
+    stats = participant_prediction_stats_subquery()
+    rows = (
+        db.session.query(
+            Participant.medical_rep_name.label("medical_rep_name"),
+            func.count(Participant.id).label("participants"),
+            func.coalesce(func.sum(Participant.total_points), 0).label("points"),
+            func.count(func.distinct(Participant.country)).label("countries"),
+            func.count(func.distinct(Participant.city)).label("cities"),
+            func.coalesce(func.sum(stats.c.predictions), 0).label("predictions"),
+            func.coalesce(func.sum(stats.c.correct), 0).label("correct"),
+            func.coalesce(func.sum(stats.c.wrong), 0).label("wrong"),
+            func.coalesce(func.sum(stats.c.pending), 0).label("pending"),
+            func.coalesce(func.sum(case((stats.c.predictions > 0, 1), else_=0)), 0).label("active"),
+        )
+        .outerjoin(stats, stats.c.participant_id == Participant.id)
         .filter(Participant.medical_rep_name.isnot(None), Participant.medical_rep_name != "")
-        .distinct()
+        .group_by(Participant.medical_rep_name)
+        .order_by(func.count(Participant.id).desc(), func.coalesce(func.sum(Participant.total_points), 0).desc())
+        .limit(limit)
         .all()
-    ]
-    for rep_name in rep_names:
-        users = Participant.query.filter_by(medical_rep_name=rep_name).all()
-        participant_ids = [user.id for user in users]
-        summary = prediction_summary_for_participants(participant_ids)
-        rows.append(
+    )
+    result = []
+    for row in rows:
+        participants = int(row.participants or 0)
+        correct = int(row.correct or 0)
+        wrong = int(row.wrong or 0)
+        active = int(row.active or 0)
+        result.append(
             {
-                "medical_rep_name": rep_name,
-                "participants": len(users),
-                "points": int(sum(user.total_points or 0 for user in users)),
-                "countries": len({user.country for user in users if user.country}),
-                "cities": len({user.city for user in users if user.city}),
-                **summary,
+                "medical_rep_name": row.medical_rep_name,
+                "participants": participants,
+                "points": int(row.points or 0),
+                "countries": int(row.countries or 0),
+                "cities": int(row.cities or 0),
+                "predictions": int(row.predictions or 0),
+                "correct": correct,
+                "wrong": wrong,
+                "pending": int(row.pending or 0),
+                "accuracy": round((correct / max(correct + wrong, 1)) * 100, 1),
+                "participation_rate": round((active / max(participants, 1)) * 100, 1),
             }
         )
-    return sorted(rows, key=lambda row: (row["participants"], row["points"]), reverse=True)[:limit]
+    return result
 
 
 def favorite_drug_summary(limit=8, participant_ids=None):
@@ -389,16 +540,15 @@ def participant_performance(participant_id):
 
 
 def admin_analytics():
-    participant_ids = [row[0] for row in db.session.query(Participant.id).all()]
-    prediction_summary = prediction_summary_for_participants(participant_ids)
-    active_participants = (
-        db.session.query(func.count(db.distinct(Prediction.participant_id))).scalar()
-        or 0
-    )
-    top_city = next(iter(grouped_participant_analytics("city", limit=1)), None)
-    top_country = next(iter(grouped_participant_analytics("country", limit=1)), None)
+    total_participants = Participant.query.count()
+    prediction_summary = global_prediction_summary(total_participants)
+    active_participants = prediction_summary["active_participants"]
+    country_analytics = grouped_participant_analytics("country")
+    city_analytics = grouped_participant_analytics("city")
+    top_city = next(iter(city_analytics), None)
+    top_country = next(iter(country_analytics), None)
     return {
-        "total_participants": Participant.query.count(),
+        "total_participants": total_participants,
         "total_predictions": Prediction.query.count(),
         "total_matches": Match.query.count(),
         "completed_matches": Match.query.filter_by(status="completed").count(),
@@ -406,8 +556,8 @@ def admin_analytics():
         "participation_rate": prediction_summary["participation_rate"],
         "accuracy": prediction_summary["accuracy"],
         "pending_predictions": prediction_summary["pending"],
-        "country_analytics": grouped_participant_analytics("country"),
-        "city_analytics": grouped_participant_analytics("city"),
+        "country_analytics": country_analytics,
+        "city_analytics": city_analytics,
         "mr_analytics": top_medical_rep_analytics(),
         "top_drugs": favorite_drug_summary(),
         "insights": {
