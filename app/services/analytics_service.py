@@ -377,10 +377,10 @@ def grouped_participant_analytics(group_field, limit=100, base_query=None):
         return sorted(rows, key=lambda row: (row["participants"], row["points"]), reverse=True)[:limit]
 
     stats = participant_prediction_stats_subquery()
-    label = func.coalesce(func.nullif(getattr(Participant, group_field), ""), "Unknown")
+    group_column = getattr(Participant, group_field)
     grouped_rows = (
         db.session.query(
-            label.label(group_field),
+            group_column.label(group_field),
             func.count(Participant.id).label("participants"),
             func.coalesce(func.sum(Participant.total_points), 0).label("points"),
             func.coalesce(func.sum(stats.c.predictions), 0).label("predictions"),
@@ -390,7 +390,7 @@ def grouped_participant_analytics(group_field, limit=100, base_query=None):
             func.coalesce(func.sum(case((stats.c.predictions > 0, 1), else_=0)), 0).label("active"),
         )
         .outerjoin(stats, stats.c.participant_id == Participant.id)
-        .group_by(label)
+        .group_by(group_column)
         .order_by(func.count(Participant.id).desc(), func.coalesce(func.sum(Participant.total_points), 0).desc())
         .limit(limit)
         .all()
@@ -401,9 +401,10 @@ def grouped_participant_analytics(group_field, limit=100, base_query=None):
         correct = int(row.correct or 0)
         wrong = int(row.wrong or 0)
         active = int(row.active or 0)
+        group_value = (getattr(row, group_field) or "Unknown").strip() or "Unknown"
         rows.append(
             {
-                group_field: getattr(row, group_field),
+                group_field: group_value,
                 "participants": participants,
                 "points": int(row.points or 0),
                 "avg_points": round((row.points or 0) / max(participants, 1), 1),
