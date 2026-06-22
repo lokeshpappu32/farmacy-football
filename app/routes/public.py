@@ -1,10 +1,10 @@
 from flask import Blueprint, request
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 
 from app.auth.guards import participant_required
 from app.extensions import db
 from app.models import Country, Participant
-from app.services.analytics_service import leaderboard, participant_performance
+from app.services.analytics_service import leaderboard_page, participant_performance, participant_rank_payload
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 public_bp = Blueprint("public", __name__)
@@ -25,6 +25,23 @@ def public_leaderboard():
     country = request.args.get("country", "").strip()
     medical_rep_name = request.args.get("medical_rep_name", "").strip()
     medical_rep_mobile_number = request.args.get("medical_rep_mobile_number", "").strip()
+    page = max(request.args.get("page", 1, type=int), 1)
+    per_page = min(max(request.args.get("per_page", 50, type=int), 1), 100)
+    data = leaderboard_page(
+        country=country,
+        medical_rep_name=medical_rep_name,
+        medical_rep_mobile_number=medical_rep_mobile_number,
+        page=page,
+        per_page=per_page,
+    )
+    own = None
+    try:
+        verify_jwt_in_request(optional=True)
+        identity = get_jwt_identity()
+        if identity:
+            own = participant_rank_payload(data["query"], int(identity))
+    except Exception:
+        own = None
     return {
         "filters": {
             "country": country,
@@ -32,12 +49,9 @@ def public_leaderboard():
             "medical_rep_mobile_number": medical_rep_mobile_number,
         },
         **leaderboard_options_payload(country=country),
-        "leaderboard": leaderboard(
-            country=country,
-            medical_rep_name=medical_rep_name,
-            medical_rep_mobile_number=medical_rep_mobile_number,
-            limit=None,
-        ),
+        "leaderboard": data["rows"],
+        "pagination": data["pagination"],
+        "own": own,
     }
 
 

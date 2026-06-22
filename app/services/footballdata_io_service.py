@@ -338,12 +338,16 @@ def apply_api_match(sync_type, item):
         match.team2 = away.get("team_name") or "Team 2"
         match.team1_logo = home.get("team_logo")
         match.team2_logo = away.get("team_logo")
-    venue = item.get("venue") or {}
-    match.venue_name = venue.get("stadium_name") or match.venue_name
-    match.venue_location = venue.get("stadium_location") or match.venue_location
 
     api_datetime = parse_api_datetime(item)
     api_status = normalize_status(item, api_datetime)
+    venue = item.get("venue") or {}
+    if is_new:
+        update_match_identity_from_api(match, home, away, venue, include_empty_logos=True)
+    allow_upcoming_identity_update = sync_type == "upcoming" and match.status == "scheduled" and api_status == "scheduled"
+    identity_updated = False
+    if allow_upcoming_identity_update and not is_new:
+        identity_updated = update_match_identity_from_api(match, home, away, venue)
 
     if api_status == "cancelled":
         if match.status != "cancelled":
@@ -389,7 +393,33 @@ def apply_api_match(sync_type, item):
     match.winner_team = None
     match.status = api_status
     db.session.add(match)
-    return match, "same_kickoff" if had_same_kickoff else "updated"
+    return match, "updated" if identity_updated else ("same_kickoff" if had_same_kickoff else "updated")
+
+
+def update_match_identity_from_api(match, home, away, venue, include_empty_logos=False):
+    changed = False
+    fields = (
+        ("team1", home.get("team_name")),
+        ("team2", away.get("team_name")),
+        ("venue_name", venue.get("stadium_name")),
+        ("venue_location", venue.get("stadium_location")),
+    )
+    for field, value in fields:
+        clean_value = str(value or "").strip()
+        if clean_value and getattr(match, field) != clean_value:
+            setattr(match, field, clean_value)
+            changed = True
+
+    logo_fields = (
+        ("team1_logo", home.get("team_logo")),
+        ("team2_logo", away.get("team_logo")),
+    )
+    for field, value in logo_fields:
+        clean_value = str(value or "").strip()
+        if (clean_value or include_empty_logos) and getattr(match, field) != clean_value:
+            setattr(match, field, clean_value)
+            changed = True
+    return changed
 
 
 def is_finalized_match(match):
