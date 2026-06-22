@@ -24,6 +24,68 @@ def apply_dense_ranks(rows, score_key):
     return ranked_rows
 
 
+def pagination_meta(total, page, per_page):
+    pages = max((int(total or 0) + per_page - 1) // per_page, 1)
+    return {
+        "page": page,
+        "per_page": per_page,
+        "total": int(total or 0),
+        "pages": pages,
+        "has_prev": page > 1,
+        "has_next": page < pages,
+    }
+
+
+def participant_page_with_dense_ranks(query, page=1, per_page=50):
+    page = max(int(page or 1), 1)
+    per_page = min(max(int(per_page or 50), 1), 100)
+    total = query.count()
+    ranked = (
+        query.with_entities(
+            Participant.id.label("participant_id"),
+            func.dense_rank().over(order_by=Participant.total_points.desc()).label("rank"),
+        )
+        .subquery()
+    )
+    rows = (
+        query.join(ranked, ranked.c.participant_id == Participant.id)
+        .add_columns(ranked.c.rank)
+        .order_by(Participant.total_points.desc(), Participant.created_at.asc(), Participant.id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+    flags = country_flag_map()
+    return {
+        "rows": [
+            {**participant.to_dict(), "country_flag_url": flags.get(participant.country), "rank": int(rank or 0)}
+            for participant, rank in rows
+        ],
+        "pagination": pagination_meta(total, page, per_page),
+    }
+
+
+def participant_rank_payload(query, participant_id):
+    ranked = (
+        query.with_entities(
+            Participant.id.label("participant_id"),
+            func.dense_rank().over(order_by=Participant.total_points.desc()).label("rank"),
+        )
+        .subquery()
+    )
+    row = (
+        Participant.query.join(ranked, ranked.c.participant_id == Participant.id)
+        .add_columns(ranked.c.rank)
+        .filter(Participant.id == participant_id)
+        .first()
+    )
+    if not row:
+        return None
+    participant, rank = row
+    flags = country_flag_map()
+    return {**participant.to_dict(), "country_flag_url": flags.get(participant.country), "rank": int(rank or 0)}
+
+
 def country_flag_map():
     return {country.name: country.flag_url for country in Country.query.filter(Country.flag_url.isnot(None)).all()}
 
@@ -105,6 +167,19 @@ def leaderboard(country=None, medical_rep_name=None, medical_rep_mobile_number=N
     return apply_dense_ranks(rows, "total_points")
 
 
+def leaderboard_page(country=None, medical_rep_name=None, medical_rep_mobile_number=None, page=1, per_page=50):
+    query = Participant.query.filter(Participant.participant_type.in_(PHARMACY_TYPES))
+    if country:
+        query = query.filter(Participant.country == country)
+    if medical_rep_mobile_number:
+        query = query.filter(Participant.medical_rep_mobile_number == medical_rep_mobile_number)
+    elif medical_rep_name:
+        query = query.filter(Participant.medical_rep_name == medical_rep_name)
+    data = participant_page_with_dense_ranks(query, page=page, per_page=per_page)
+    data["query"] = query
+    return data
+
+
 def hetero_points_leaderboard(country=None, limit=500):
     query = Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES))
     if country:
@@ -113,6 +188,20 @@ def hetero_points_leaderboard(country=None, limit=500):
     flags = country_flag_map()
     rows = [{**user.to_dict(), "country_flag_url": flags.get(user.country)} for user in users]
     return apply_dense_ranks(rows, "total_points")
+
+
+def hetero_points_leaderboard_page(country=None, page=1, per_page=50):
+    query = Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES))
+    if country:
+        query = query.filter(Participant.country == country)
+    return participant_page_with_dense_ranks(query, page=page, per_page=per_page)
+
+
+def hetero_points_rank(country=None, participant_id=None):
+    query = Participant.query.filter(Participant.participant_type.in_(HETERO_TYPES))
+    if country:
+        query = query.filter(Participant.country == country)
+    return participant_rank_payload(query, participant_id)
 
 
 def mr_participation_rankings(country=None, limit=500):

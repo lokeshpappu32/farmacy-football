@@ -6,7 +6,7 @@ from flask import Blueprint, Response, current_app, request
 from app.auth.guards import admin_or_super_admin_required, super_admin_required
 from app.extensions import db
 from app.models import AdminLog, ApiCallLog, ApiSyncState, Country, Match, Participant, Prediction
-from app.services.analytics_service import admin_analytics, leaderboard
+from app.services.analytics_service import admin_analytics, leaderboard_page
 from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 from app.services.footballdata_io_service import maybe_sync_football_data
 from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, reschedule_match, sync_matches_from_api
@@ -263,7 +263,10 @@ def update_user(user_id):
 @admin_bp.get("/leaderboard")
 @super_admin_required
 def admin_leaderboard():
-    return {"leaderboard": leaderboard(limit=500)}
+    page = positive_int(request.args.get("page"), 1)
+    per_page = min(positive_int(request.args.get("per_page"), 50), 100)
+    data = leaderboard_page(page=page, per_page=per_page)
+    return {"leaderboard": data["rows"], "pagination": data["pagination"]}
 
 
 @admin_bp.get("/analytics")

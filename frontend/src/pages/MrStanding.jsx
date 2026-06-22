@@ -14,16 +14,21 @@ export default function MrStanding({
 }) {
   const { t } = useLanguage();
   const [country, setCountry] = useState("");
+  const [page, setPage] = useState(1);
+  const perPage = 50;
   const endpoint = mode === "rep" ? "/mr/rep/standing" : "/mr/standing";
   const { data, loading, error, refresh } = useApi(async () => {
     const params = new URLSearchParams();
     if (country) params.set("country", country);
+    params.set("page", page);
+    params.set("per_page", perPage);
     return (await api.get(`${endpoint}${params.toString() ? `?${params.toString()}` : ""}`)).data;
-  }, [country, endpoint]);
+  }, [country, endpoint, page]);
 
   const countries = data?.countries || [];
   const rows = data?.mr_rankings || [];
   const ownStanding = data?.own || null;
+  const pagination = data?.pagination;
 
   return (
     <div className="space-y-6">
@@ -36,7 +41,14 @@ export default function MrStanding({
           <p className="mt-2 text-white/65">{subtitle}</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-[220px_auto]">
-          <select className="input" value={country} onChange={(event) => setCountry(event.target.value)}>
+          <select
+            className="input"
+            value={country}
+            onChange={(event) => {
+              setCountry(event.target.value);
+              setPage(1);
+            }}
+          >
             <option className="bg-black" value="">{t("common.allCountries", "All countries")}</option>
             {countries.map((item) => <option className="bg-black" key={item} value={item}>{item}</option>)}
           </select>
@@ -45,7 +57,16 @@ export default function MrStanding({
       </div>
 
       <section className="glass scroll-panel max-h-[620px] overflow-y-auto rounded-3xl p-4 md:p-6">
+        {!loading && !error && pagination && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
+              {pagination.total} {t("admin.users", "users")}
+            </span>
+            <PaginationControls meta={pagination} onPage={setPage} />
+          </div>
+        )}
         {loading ? <LoadingSkeleton rows={7} /> : error ? <div>{error}</div> : <MrRankingList rows={rows} showCountry={!country} />}
+        {!loading && !error && <PaginationControls meta={pagination} onPage={setPage} align="center" />}
       </section>
 
       {mode === "rep" && !loading && !error && (
@@ -81,6 +102,30 @@ export default function MrStanding({
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+function PaginationControls({ meta, onPage, align = "end" }) {
+  const { t } = useLanguage();
+  if (!meta || meta.pages <= 1) return null;
+  return (
+    <div className={`flex items-center gap-2 ${align === "center" ? "mt-4 justify-center" : ""}`}>
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={!meta.has_prev}
+        onClick={() => onPage(meta.page - 1)}
+      >
+        {t("schedule.previous", "Prev")}
+      </button>
+      <span className="min-w-14 text-center text-xs font-bold text-white/60">{meta.page}/{meta.pages}</span>
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={!meta.has_next}
+        onClick={() => onPage(meta.page + 1)}
+      >
+        {t("schedule.next", "Next")}
+      </button>
     </div>
   );
 }

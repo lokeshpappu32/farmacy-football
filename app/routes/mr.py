@@ -3,7 +3,12 @@ from flask_jwt_extended import get_jwt_identity
 
 from app.auth.guards import admin_required, hetero_rep_required
 from app.models import Country, PointsHistory, Prediction
-from app.services.analytics_service import hetero_points_leaderboard, hetero_rep_participation_performance, leaderboard, mr_dashboard_analytics
+from app.services.analytics_service import (
+    hetero_points_leaderboard_page,
+    hetero_points_rank,
+    hetero_rep_participation_performance,
+    mr_dashboard_analytics,
+)
 from app.services.footballdata_io_service import maybe_sync_football_data
 
 mr_bp = Blueprint("mr", __name__)
@@ -22,10 +27,14 @@ def mr_performance():
 def mr_standing():
     maybe_sync_football_data("mr_dashboard", role="admin", user_id="mr_admin", sync_types=["results"])
     country = request.args.get("country", "").strip()
+    page = max(request.args.get("page", 1, type=int), 1)
+    per_page = min(max(request.args.get("per_page", 50, type=int), 1), 100)
+    data = hetero_points_leaderboard_page(country=country, page=page, per_page=per_page)
     return {
         "filters": {"country": country},
         "countries": countries_payload(),
-        "mr_rankings": hetero_points_leaderboard(country=country),
+        "mr_rankings": data["rows"],
+        "pagination": data["pagination"],
     }
 
 
@@ -44,13 +53,16 @@ def rep_standing():
     identity = int(get_jwt_identity())
     maybe_sync_football_data("rep_standing", role="hetero_rep", user_id=identity, sync_types=["results"])
     country = request.args.get("country", "").strip()
-    rows = hetero_points_leaderboard(country=country)
-    own = next((row for row in rows if row["id"] == identity), None)
+    page = max(request.args.get("page", 1, type=int), 1)
+    per_page = min(max(request.args.get("per_page", 50, type=int), 1), 100)
+    data = hetero_points_leaderboard_page(country=country, page=page, per_page=per_page)
+    own = hetero_points_rank(country=country, participant_id=identity)
     return {
         "filters": {"country": country},
         "countries": countries_payload(),
         "own": own,
-        "mr_rankings": rows,
+        "mr_rankings": data["rows"],
+        "pagination": data["pagination"],
         "points_history": [
             item.to_dict()
             for item in PointsHistory.query.filter_by(participant_id=identity)

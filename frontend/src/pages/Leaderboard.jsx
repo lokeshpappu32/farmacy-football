@@ -17,12 +17,16 @@ export default function Leaderboard({
   const { t } = useLanguage();
   const [filters, setFilters] = useState({ country: "", medical_rep_mobile_number: "" });
   const [options, setOptions] = useState({ countries: [], medical_reps: [] });
+  const [page, setPage] = useState(1);
+  const perPage = 50;
   const { data, loading, error, refresh } = useApi(async () => {
     const params = new URLSearchParams();
     if (filters.country) params.set("country", filters.country);
     if (filters.medical_rep_mobile_number) params.set("medical_rep_mobile_number", filters.medical_rep_mobile_number);
+    params.set("page", page);
+    params.set("per_page", perPage);
     return (await api.get(`/leaderboard${params.toString() ? `?${params.toString()}` : ""}`)).data;
-  }, [filters.country, filters.medical_rep_mobile_number]);
+  }, [filters.country, filters.medical_rep_mobile_number, page]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -34,7 +38,8 @@ export default function Leaderboard({
   }, [filters.country]);
 
   const rows = data?.leaderboard || [];
-  const ownStanding = rows.find((row) => row.id === participant?.id);
+  const ownStanding = data?.own || rows.find((row) => row.id === participant?.id);
+  const pagination = data?.pagination;
   const countries = uniqueOptions([...(options.countries || []), ...(data?.countries || []), ...rows.map((row) => row.country)]);
   const medicalReps = uniqueRepOptions([...(options.medical_reps || []), ...(data?.medical_reps || [])]);
   return (
@@ -49,7 +54,10 @@ export default function Leaderboard({
           <select
             className="input"
             value={filters.country}
-            onChange={(event) => setFilters({ country: event.target.value, medical_rep_mobile_number: "" })}
+            onChange={(event) => {
+              setFilters({ country: event.target.value, medical_rep_mobile_number: "" });
+              setPage(1);
+            }}
           >
             <option className="bg-black" value="">{t("common.allCountries", "All countries")}</option>
             {countries.map((country) => <option className="bg-black" key={country} value={country}>{country}</option>)}
@@ -57,7 +65,10 @@ export default function Leaderboard({
           <select
             className="input"
             value={filters.medical_rep_mobile_number}
-            onChange={(event) => setFilters((current) => ({ ...current, medical_rep_mobile_number: event.target.value }))}
+            onChange={(event) => {
+              setFilters((current) => ({ ...current, medical_rep_mobile_number: event.target.value }));
+              setPage(1);
+            }}
           >
             <option className="bg-black" value="">HETERO Rep</option>
             {medicalReps.map((rep) => (
@@ -70,8 +81,41 @@ export default function Leaderboard({
         </div>
       </div>
       <div className="glass scroll-panel max-h-[620px] overflow-y-auto rounded-3xl p-4 md:p-6">
+        {!loading && !error && pagination && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
+              {pagination.total} {t("admin.users", "users")}
+            </span>
+            <PaginationControls meta={pagination} onPage={setPage} />
+          </div>
+        )}
         {loading ? <LoadingSkeleton rows={6} /> : error ? <div>{error}</div> : <LeaderboardList rows={rows} />}
+        {!loading && !error && <PaginationControls meta={pagination} onPage={setPage} align="center" />}
       </div>
+    </div>
+  );
+}
+
+function PaginationControls({ meta, onPage, align = "end" }) {
+  const { t } = useLanguage();
+  if (!meta || meta.pages <= 1) return null;
+  return (
+    <div className={`flex items-center gap-2 ${align === "center" ? "mt-4 justify-center" : ""}`}>
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={!meta.has_prev}
+        onClick={() => onPage(meta.page - 1)}
+      >
+        {t("schedule.previous", "Prev")}
+      </button>
+      <span className="min-w-14 text-center text-xs font-bold text-white/60">{meta.page}/{meta.pages}</span>
+      <button
+        className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black transition hover:border-gold/40 hover:text-gold disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={!meta.has_next}
+        onClick={() => onPage(meta.page + 1)}
+      >
+        {t("schedule.next", "Next")}
+      </button>
     </div>
   );
 }
