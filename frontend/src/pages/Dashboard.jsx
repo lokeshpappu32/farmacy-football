@@ -246,17 +246,20 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
           )}
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              {[match.team1, "Draw", match.team2].map((name) => (
+              {[match.team1, "Draw", match.team2].map((name) => {
+                const isDrawChoice = name === "Draw";
+                const choiceDisabled = !canEdit || isDrawChoice;
+                return (
                 <button
                   type="button"
                   key={name}
-                  disabled={!canEdit}
+                  disabled={choiceDisabled}
                   onClick={() => onDraft(match.id, "predicted_team", name)}
                   className={`match-choice-btn border ${
                     selectedTeam === name
                       ? "border-white bg-white/85 text-black"
                       : "border-white/20 bg-white/45 text-white"
-                  } ${canEdit ? "hover:border-gold/60" : "cursor-not-allowed opacity-70"}`}
+                  } ${choiceDisabled ? "cursor-not-allowed opacity-45" : "hover:border-gold/60"}`}
                 >
                   <span
                     className="match-choice-text"
@@ -265,7 +268,8 @@ function MatchPredictionCard({ match, prediction, draft, onDraft, onSubmit, inde
                     {name === "Draw" ? t("common.draw", "Draw") : name}
                   </span>
                 </button>
-              ))}
+                );
+              })}
             </div>
             <label className="block text-lg font-black">{brandLabel}</label>
             <input
