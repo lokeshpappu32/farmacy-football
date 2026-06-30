@@ -361,10 +361,9 @@ def apply_api_match(sync_type, item):
         match.match_datetime = api_datetime
         winner = winner_from_score(item, match)
         if winner == "Draw":
-            if match.status != "completed" or match.winner_team != "Draw":
-                db.session.commit()
-                finalize_draw(match, source="api")
-                return match, "completed"
+            match.status = "live"
+            db.session.add(match)
+            return match, "updated"
         elif winner:
             if match.status != "completed" or match.winner_team != winner:
                 db.session.commit()
