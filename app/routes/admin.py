@@ -10,6 +10,7 @@ from app.services.analytics_service import admin_analytics, leaderboard_page
 from app.utils.participant_types import HETERO_TYPES, PHARMACY_TYPES
 from app.services.footballdata_io_service import maybe_sync_football_data
 from app.services.match_service import cancel_match, finalize_draw, manual_update_winner, reschedule_match, sync_matches_from_api
+from app.services.winner_correction_service import correct_match_winner, find_match_for_correction
 from app.utils.serialization import utc_iso
 from app.utils.validators import ValidationError, clean_email, clean_mobile, parse_utc_datetime, require_fields
 
@@ -187,6 +188,27 @@ def update_match_action(match_id):
     except (ValueError, ValidationError) as exc:
         return {"message": str(exc)}, 400
     return {"message": "Unsupported match action."}, 400
+
+
+@admin_bp.post("/matches/correct-winner")
+@super_admin_required
+def correct_winner():
+    payload = request.get_json(silent=True) or {}
+    winner = str(payload.get("winner_team") or payload.get("winner") or "").strip()
+    dry_run = bool(payload.get("dry_run", True))
+    if not winner:
+        return {"message": "winner_team is required."}, 400
+    try:
+        match = find_match_for_correction(
+            match_id=payload.get("match_id"),
+            api_match_id=payload.get("api_match_id"),
+            team1=str(payload.get("team1") or "").strip() or None,
+            team2=str(payload.get("team2") or "").strip() or None,
+        )
+        result = correct_match_winner(match, winner, dry_run=dry_run)
+        return {"message": "Dry run completed." if dry_run else "Winner correction applied.", "result": result}
+    except ValueError as exc:
+        return {"message": str(exc)}, 400
 
 
 @admin_bp.delete("/matches/<int:match_id>")
