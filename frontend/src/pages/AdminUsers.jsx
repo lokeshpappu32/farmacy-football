@@ -23,8 +23,10 @@ export default function AdminUsers() {
     if (filters.q) params.set("q", filters.q);
     if (filters.country) params.set("country", filters.country);
     if (filters.participant_type) params.set("participant_type", filters.participant_type);
+    params.set("page", page);
+    params.set("per_page", pageSize);
     return (await api.get(`/admin/users${params.toString() ? `?${params.toString()}` : ""}`)).data;
-  }, [filters.q, filters.country, filters.participant_type]);
+  }, [filters.q, filters.country, filters.participant_type, page]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -48,9 +50,11 @@ export default function AdminUsers() {
     setPage(1);
     setFilters({ q: "", country: "", participant_type: "" });
   };
-  const users = filterUsers(data?.users || [], filters);
-  const totalPages = Math.max(Math.ceil(users.length / pageSize), 1);
-  const visibleUsers = users.slice((page - 1) * pageSize, page * pageSize);
+  const users = data?.users || [];
+  const pagination = data?.pagination || {};
+  const totalUsers = pagination.total ?? users.length;
+  const totalPages = Math.max(pagination.pages || 1, 1);
+  const visibleUsers = users;
   const countries = uniqueOptions([...(options.countries || []), ...(data?.countries || []), ...(data?.users || []).map((user) => user.country)]);
   const participantTypes = options.participant_types?.length ? options.participant_types : defaultParticipantTypes;
   useEffect(() => {
@@ -89,7 +93,7 @@ export default function AdminUsers() {
           <>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
-                {users.length} {t("admin.users", "users")}
+                {totalUsers} {t("admin.users", "users")}
               </span>
               <PaginationControls page={page} totalPages={totalPages} onPage={setPage} />
             </div>
@@ -102,7 +106,7 @@ export default function AdminUsers() {
                       <td className="p-3 font-bold">{user.full_name}</td><td>{user.mobile_number}</td><td>{user.email}</td><td>{user.country}</td><td>{user.medical_rep_name || "-"}</td><td>{typeLabel(user.participant_type)}</td><td className="font-black text-gold">{user.total_points}</td>
                     </tr>
                   ))}
-                  {users.length === 0 && (
+                  {visibleUsers.length === 0 && (
                     <tr className="border-t border-white/10">
                       <td className="p-4 text-white/55" colSpan="7">{t("admin.noUsers", "No users match the selected filters.")}</td>
                     </tr>
@@ -133,32 +137,6 @@ function typeLabel(value) {
     return item.value === value;
   });
   return option?.label || "Farmacist";
-}
-
-function filterUsers(users, filters) {
-  const search = filters.q.trim().toLowerCase();
-  return users.filter((user) => {
-    const matchesSearch = !search || [
-      user.full_name,
-      user.mobile_number,
-      user.email,
-      user.country,
-      user.medical_rep_name,
-      user.medical_rep_mobile_number,
-    ].some((value) => String(value || "").toLowerCase().includes(search));
-    return (
-      matchesSearch &&
-      (!filters.country || user.country === filters.country) &&
-      (!filters.participant_type || typeMatches(user.participant_type, filters.participant_type))
-    );
-  });
-}
-
-function typeMatches(actual, selected) {
-  if (selected === "all_farmacists") return ["farmacist", "farmacy_owner", "farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor", "farmacy_sales_staff"].includes(actual);
-  if (selected === "farmacy_head_supervisor") return ["farmacy_head_supervisor", "farmacy_head", "farmacy_supervisor"].includes(actual);
-  if (selected === "hetero_representative_staff") return ["hetero_representative_staff", "hetero_staff", "hetero_representative", "medical_rep"].includes(actual);
-  return actual === selected;
 }
 
 function PaginationControls({ page, totalPages, onPage }) {

@@ -228,6 +228,9 @@ def delete_match(match_id):
 def users():
     q, country, participant_type = user_filter_values()
     query = filtered_users_query()
+    page = positive_int(request.args.get("page"), 1)
+    per_page = min(positive_int(request.args.get("per_page"), 50), 200)
+    users_page = query.order_by(Participant.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     return {
         "filters": {"q": q, "country": country, "participant_type": participant_type},
@@ -240,7 +243,8 @@ def users():
             .all()
         ],
         "participant_types": participant_type_options(),
-        "users": [user.to_dict(include_private=True) for user in query.order_by(Participant.created_at.desc()).all()],
+        "users": [user.to_dict(include_private=True) for user in users_page.items],
+        "pagination": pagination_payload(users_page),
     }
 
 
